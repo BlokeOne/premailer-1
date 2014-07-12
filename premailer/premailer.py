@@ -1,13 +1,20 @@
+import threading
+try:
+    import cStringIO as StringIO
+except ImportError:
+    import StringIO
 import cgi
 import codecs
-from lxml import etree
-from lxml.cssselect import CSSSelector
+import gzip
+import operator
 import os
 import re
-import urllib
 import urllib2
 import urlparse
-import operator
+
+import cssutils
+from lxml import etree
+from lxml.cssselect import CSSSelector
 
 
 __all__ = ['PremailerError', 'Premailer', 'transform']
@@ -36,27 +43,35 @@ def merge_styles(old, new, class_=''):
     Note: old could be something like '{...} ::first-letter{...}'
 
     """
+
+    def csstext_to_pairs(csstext):
+        parsed = cssutils.css.CSSVariablesDeclaration(csstext)
+        for key in parsed:
+            yield (key, parsed.getVariableValue(key))
+
     new_keys = set()
     news = []
-    for k, v in [x.strip().split(':', 1) for x in new.split(';') if x.strip()]:
-        news.append((k.strip(), v.strip()))
-        new_keys.add(k.strip())
 
-    groups = {}
-    grouped_split = grouping_regex.findall(old)
-    if grouped_split:
-        for old_class, old_content in grouped_split:
+    # The code below is wrapped in a critical section implemented via ``RLock``-class lock.
+    # The lock is required to avoid ``cssutils`` concurrency issues documented in issue #65
+    with merge_styles._lock:
+        for k, v in csstext_to_pairs(new):
+            news.append((k.strip(), v.strip()))
+            new_keys.add(k.strip())
+
+        groups = {}
+        grouped_split = grouping_regex.findall(old)
+        if grouped_split:
+            for old_class, old_content in grouped_split:
+                olds = []
+                for k, v in csstext_to_pairs(old_content):
+                    olds.append((k.strip(), v.strip()))
+                groups[old_class] = olds
+        else:
             olds = []
-            for k, v in [x.strip().split(':', 1) for
-                         x in old_content.split(';') if x.strip()]:
+            for k, v in csstext_to_pairs(old):
                 olds.append((k.strip(), v.strip()))
-            groups[old_class] = olds
-    else:
-        olds = []
-        for k, v in [x.strip().split(':', 1) for
-                     x in old.split(';') if x.strip()]:
-            olds.append((k.strip(), v.strip()))
-        groups[''] = olds
+            groups[''] = olds
 
     # Perform the merge
     relevant_olds = groups.get(class_, {})
@@ -65,7 +80,7 @@ def merge_styles(old, new, class_=''):
 
     if len(groups) == 1:
         return '; '.join('%s:%s' % (k, v) for
-                          (k, v) in groups.values()[0])
+                          (k, v) in sorted(groups.values()[0]))
     else:
         all = []
         for class_, mergeable in sorted(groups.items(),
@@ -77,6 +92,9 @@ def merge_styles(old, new, class_=''):
                                               in mergeable)))
         return ' '.join(x for x in all if x != '{}')
 
+# The lock is used in merge_styles function to work around threading concurrency bug of cssutils library.
+# The bug is documented in issue #65. The bug's reproduction test in test_premailer.test_multithreading.
+merge_styles._lock = threading.RLock()
 
 def make_important(bulk):
     """makes every property in a string !important.
@@ -85,10 +103,6 @@ def make_important(bulk):
                     for p in bulk.split(';'))
 
 
-_css_comments = re.compile(r'/\*.*?\*/', re.MULTILINE | re.DOTALL)
-_regex = re.compile('((.*?){(.*?)})', re.DOTALL | re.M)
-_semicolon_regex = re.compile(';(\s+)')
-_colon_regex = re.compile(':(\s+)')
 _element_selector_regex = re.compile(r'(^|\s)\w')
 _cdata_regex = re.compile(r'\<\!\[CDATA\[(.*?)\]\]\>', re.DOTALL)
 _importants = re.compile('\s*!important')
@@ -101,6 +115,7 @@ class Premailer(object):
 
     def __init__(self, html, base_url=None,
                  preserve_internal_links=False,
+                 preserve_inline_attachments=True,
                  exclude_pseudoclasses=True,
                  keep_style_tags=False,
                  include_star_selectors=False,
@@ -108,10 +123,13 @@ class Premailer(object):
                  strip_important=True,
                  external_styles=None,
                  method="html",
-                 base_path=None):
+                 base_path=None,
+                 disable_basic_attributes=None,
+                 disable_validation=False):
         self.html = html
         self.base_url = base_url
         self.preserve_internal_links = preserve_internal_links
+        self.preserve_inline_attachments = preserve_inline_attachments
         self.exclude_pseudoclasses = exclude_pseudoclasses
         # whether to delete the <style> tag once it's been processed
         self.keep_style_tags = keep_style_tags
@@ -124,24 +142,37 @@ class Premailer(object):
         self.strip_important = strip_important
         self.method = method
         self.base_path = base_path
+        if disable_basic_attributes is None:
+            disable_basic_attributes = []
+        self.disable_basic_attributes = disable_basic_attributes
+        self.disable_validation = disable_validation
 
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
         rules = []
-
-        css_body = _css_comments.sub('', css_body or '')
         rule_index = 0
-        for each in _regex.findall(css_body.strip()):
-            __, selectors, bulk = each
-
-            bulk = _semicolon_regex.sub(';', bulk.strip())
-            bulk = _colon_regex.sub(':', bulk.strip())
-            if bulk.endswith(';'):
-                bulk = bulk[:-1]
-            for selector in (x.strip() for
-                             x in selectors.split(',') if x.strip() and
-                             not x.strip().startswith('@')):
-
+        # empty string
+        if not css_body:
+            return rules, leftover
+        sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
+        for rule in sheet:
+            # handle media rule
+            if rule.type == rule.MEDIA_RULE:
+                leftover.append(rule)
+                continue
+            # only proceed for things we recognize
+            if rule.type != rule.STYLE_RULE:
+                continue
+            bulk = ';'.join(
+                u'{0}:{1}'.format(key, rule.style[key])
+                for key in rule.style.keys()
+            )
+            selectors = (
+                x.strip()
+                for x in rule.selectorText.split(',')
+                if x.strip() and not x.strip().startswith('@')
+            )
+            for selector in selectors:
                 if (':' in selector and self.exclude_pseudoclasses and
                     ':' + selector.split(':', 1)[1]
                         not in FILTER_PSEUDOSELECTORS):
@@ -163,14 +194,17 @@ class Premailer(object):
 
         return rules, leftover
 
-    def transform(self, pretty_print=True):
+    def transform(self, pretty_print=True, **kwargs):
         """change the self.html and return it with CSS turned into style
         attributes.
         """
         if etree is None:
             return self.html
 
-        parser = etree.HTMLParser()
+        if self.method == 'xml':
+            parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
+        else:
+            parser = etree.HTMLParser()
         stripped = self.html.strip()
         tree = etree.fromstring(stripped, parser).getroottree()
         page = tree.getroot()
@@ -223,8 +257,24 @@ class Premailer(object):
                     style = etree.Element('style')
                     style.attrib['type'] = 'text/css'
 
-                style.text = '\n'.join(['%s {%s}' % (k, make_important(v)) for
-                                        (k, v) in these_leftover])
+                lines = []
+                for item in these_leftover:
+                    if isinstance(item, tuple):
+                        k, v = item
+                        lines.append('%s {%s}' % (k, make_important(v)))
+                    # media rule
+                    else:
+                        for rule in item.cssRules:
+                            if isinstance(rule, cssutils.css.csscomment.CSSComment):
+                                continue
+                            for key in rule.style.keys():
+                                rule.style[key] = (
+                                    rule.style.getPropertyValue(key, False),
+                                    '!important'
+                                )
+                        lines.append(item.cssText)
+                style.text = '\n'.join(lines)
+
                 if self.method == 'xml':
                     style.text = etree.CDATA(style.text)
 
@@ -298,33 +348,59 @@ class Premailer(object):
                     if attr == 'href' and self.preserve_internal_links \
                            and parent.attrib[attr].startswith('#'):
                         continue
+                    if attr == 'src' and self.preserve_inline_attachments \
+                           and parent.attrib[attr].startswith('cid:'):
+                        continue
                     if not self.base_url.endswith('/'):
                         self.base_url += '/'
                     parent.attrib[attr] = urlparse.urljoin(self.base_url,
-                        parent.attrib[attr].strip('/'))
+                        parent.attrib[attr].lstrip('/'))
 
-        out = etree.tostring(root, method=self.method, pretty_print=pretty_print)
+        kwargs.setdefault('method', self.method)
+        kwargs.setdefault('pretty_print', pretty_print)
+        out = etree.tostring(root, **kwargs)
         if self.method == 'xml':
             out = _cdata_regex.sub(lambda m: '/*<![CDATA[*/%s/*]]>*/' % m.group(1), out)
         if self.strip_important:
             out = _importants.sub('', out)
         return out
 
+    def _load_external_url(self, url):
+        r = urllib2.urlopen(url)
+        _, params = cgi.parse_header(r.headers.get('Content-Type', ''))
+        encoding = params.get('charset', 'utf-8')
+        if 'gzip' in r.info().get('Content-Encoding', ''):
+            buf = StringIO.StringIO(r.read())
+            f = gzip.GzipFile(fileobj=buf)
+            out = f.read().decode(encoding)
+        else:
+            out = r.read().decode(encoding)
+        return out
+
     def _load_external(self, url):
         """loads an external stylesheet from a remote url or local path
         """
+        if url.startswith('//'):
+            # then we have to rely on the base_url
+            if self.base_url and 'https://' in self.base_url:
+                url = 'https:' + url
+            else:
+                url = 'http:' + url
+
         if url.startswith('http://') or url.startswith('https://'):
-            r = urllib2.urlopen(url)
-            _, params = cgi.parse_header(r.headers.get('Content-Type', ''))
-            encoding = params.get('charset', 'utf-8')
-            css_body = r.read().decode(encoding)
+            css_body = self._load_external_url(url)
         else:
             stylefile = url
             if not os.path.isabs(stylefile):
-                stylefile = os.path.join(self.base_path or '', stylefile)
+                stylefile = os.path.abspath(
+                    os.path.join(self.base_path or '', stylefile)
+                )
             if os.path.exists(stylefile):
                 with codecs.open(stylefile, encoding='utf-8') as f:
                     css_body = f.read()
+            elif self.base_url:
+                url = urlparse.urljoin(self.base_url, url)
+                return self._load_external(url)
             else:
                 raise ValueError(u"Could not find external style: %s" %
                                  stylefile)
@@ -363,7 +439,7 @@ class Premailer(object):
             #    print 'value', repr(value)
 
         for key, value in attributes.items():
-            if key in element.attrib and not force:
+            if key in element.attrib and not force or key in self.disable_basic_attributes:
                 # already set, don't dare to overwrite
                 continue
             element.attrib[key] = value

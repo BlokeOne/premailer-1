@@ -23,7 +23,7 @@ def main(args):
     )
 
     parser.add_argument(
-        "-o", "--output", nargs='?', type=argparse.FileType('r'),
+        "-o", "--output", nargs='?', type=argparse.FileType('w'),
         help="Specifies the output file.  The default is stdout.",
         default=sys.stdout, dest="outfile"
     )
@@ -75,16 +75,29 @@ def main(args):
         "--base-path", default=None, dest="base_path",
         help="The base path for all external stylsheets."
     )
-    
+
     parser.add_argument(
         "--external-style", action="append", dest="external_styles",
         help="The path to an external stylesheet to be loaded."
     )
+    parser.add_argument(
+        "--disable-basic-attributes", dest="disable_basic_attributes",
+        help="Disable provided basic attributes (comma separated)", default=[]
+    )
+
+    parser.add_argument(
+        "--disable-validation", default=False,
+        action="store_true", dest="disable_validation",
+        help="Disable CSSParser validation of attributes and values",
+    )
 
     options = parser.parse_args(args)
 
+    if options.disable_basic_attributes:
+        options.disable_basic_attributes = options.disable_basic_attributes.split()
+
     p = Premailer(
-        html=options.infile.read(),
+        html=options.infile.read().decode('utf-8'),
         base_url=options.base_url,
         preserve_internal_links=options.preserve_internal_links,
         exclude_pseudoclasses=options.exclude_pseudoclasses,
@@ -95,6 +108,8 @@ def main(args):
         external_styles=options.external_styles,
         method=options.method,
         base_path=options.base_path,
+        disable_basic_attributes=options.disable_basic_attributes,
+        disable_validation=options.disable_validation
     )
     options.outfile.write(p.transform())
     return 0

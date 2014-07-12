@@ -43,7 +43,6 @@ setup(
     author='Peter Bengtsson',
     author_email='mail@peterbe.com',
     url='http://github.com/peterbe/premailer',
-    download_url='http://github.com/peterbe/premailer',
     license='Python',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -61,13 +60,11 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     test_suite='nose.collector',
-    tests_require=['Nose'],
-    zip_safe=True,
+    tests_require=['nose', 'mock'],
+    zip_safe=False,
     install_requires=[
         'lxml',
         'cssselect',
+        'cssutils',
     ],
-    entry_points="""
-    # -*- Entry points: -*-
-    """,
 )
