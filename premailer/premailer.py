@@ -25,7 +25,7 @@ class PremailerError(Exception):
 
 
 grouping_regex = re.compile('([:\-\w]*){([^}]+)}')
-
+#this is a test comment
 
 def merge_styles(old, new, class_=''):
     """
