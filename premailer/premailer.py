@@ -445,12 +445,22 @@ class Premailer(object):
                 # already set, don't dare to overwrite
                 continue
             element.attrib[key] = value
-        """create a meta data reporting function, it will have hardcoded css tag and return true or false
+
+    """create a meta data reporting function, it will have hardcoded css tag and return true or false
     for those certain tags"""
     def detect_tags(self, html):
-    #hardcoded list of tags we want to report.
-    #scan through the html for those certain tags.
-    #print out a nice object returning the css property and whether it is true or false.
+
+        """
+        instantiate the html object.
+        if listOfElements == html.cssselect
+            return true
+        else
+            return false
+        """
+        #create a hardcoded list of tags we want to report.
+
+        #scan through the html for those certain tags. use lxml.cssselect scan object for tag
+        #print out a nice object returning the css property and whether it is true or false.
         return 1
 
 
@@ -473,7 +483,10 @@ if __name__ == '__main__':
             background-color: lightblue;
             }
         }
-        <!--testy-->
+        @font-face {
+        font-family: DeliciousRoman;
+        src: url(/Delicious-Roman.otf);
+        }
         h1, h2 { color:red;  }
         strong {
           text-decoration:none
