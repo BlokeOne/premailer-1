@@ -1,4 +1,5 @@
 import threading
+
 try:
     import cStringIO as StringIO
 except ImportError:
@@ -25,7 +26,7 @@ class PremailerError(Exception):
 
 
 grouping_regex = re.compile('([:\-\w]*){([^}]+)}')
-#this is a test comment
+# this is a test comment
 
 def merge_styles(old, new, class_=''):
     """
@@ -80,7 +81,7 @@ def merge_styles(old, new, class_=''):
 
     if len(groups) == 1:
         return '; '.join('%s:%s' % (k, v) for
-                          (k, v) in sorted(groups.values()[0]))
+                         (k, v) in sorted(groups.values()[0]))
     else:
         all = []
         for class_, mergeable in sorted(groups.items(),
@@ -88,13 +89,14 @@ def merge_styles(old, new, class_=''):
                                                          y[0].count(':'))):
             all.append('%s{%s}' % (class_,
                                    '; '.join('%s:%s' % (k, v)
-                                              for (k, v)
-                                              in mergeable)))
+                                             for (k, v)
+                                             in mergeable)))
         return ' '.join(x for x in all if x != '{}')
 
 # The lock is used in merge_styles function to work around threading concurrency bug of cssutils library.
 # The bug is documented in issue #65. The bug's reproduction test in test_premailer.test_multithreading.
 merge_styles._lock = threading.RLock()
+
 
 def make_important(bulk):
     """makes every property in a string !important.
@@ -112,7 +114,6 @@ FILTER_PSEUDOSELECTORS = [':last-child', ':first-child', 'nth-child']
 
 
 class Premailer(object):
-
     def __init__(self, html, base_url=None,
                  preserve_internal_links=False,
                  preserve_inline_attachments=True,
@@ -147,6 +148,7 @@ class Premailer(object):
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
 
+
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
         rules = []
@@ -174,7 +176,7 @@ class Premailer(object):
             )
             for selector in selectors:
                 if (':' in selector and self.exclude_pseudoclasses and
-                    ':' + selector.split(':', 1)[1]
+                                ':' + selector.split(':', 1)[1]
                         not in FILTER_PSEUDOSELECTORS):
                     # a pseudoclass
                     leftover.append((selector, bulk))
@@ -346,15 +348,15 @@ class Premailer(object):
                 for item in page.xpath("//@%s" % attr):
                     parent = item.getparent()
                     if attr == 'href' and self.preserve_internal_links \
-                           and parent.attrib[attr].startswith('#'):
+                            and parent.attrib[attr].startswith('#'):
                         continue
                     if attr == 'src' and self.preserve_inline_attachments \
-                           and parent.attrib[attr].startswith('cid:'):
+                            and parent.attrib[attr].startswith('cid:'):
                         continue
                     if not self.base_url.endswith('/'):
                         self.base_url += '/'
                     parent.attrib[attr] = urlparse.urljoin(self.base_url,
-                        parent.attrib[attr].lstrip('/'))
+                                                           parent.attrib[attr].lstrip('/'))
 
         kwargs.setdefault('method', self.method)
         kwargs.setdefault('pretty_print', pretty_print)
@@ -417,7 +419,7 @@ class Premailer(object):
         '{color:red; border:1px solid green} :visited{border:1px solid green}'
         """
         if style_content.count('}') and \
-          style_content.count('{') == style_content.count('{'):
+                        style_content.count('{') == style_content.count('{'):
             style_content = style_content.split('}')[0][1:]
 
         attributes = {}
@@ -434,27 +436,45 @@ class Premailer(object):
                 if value.endswith('px'):
                     value = value[:-2]
                 attributes[key] = value
-            #else:
-            #    print "key", repr(key)
-            #    print 'value', repr(value)
+                #else:
+                #    print "key", repr(key)
+                #    print 'value', repr(value)
 
         for key, value in attributes.items():
             if key in element.attrib and not force or key in self.disable_basic_attributes:
                 # already set, don't dare to overwrite
                 continue
             element.attrib[key] = value
+        """create a meta data reporting function, it will have hardcoded css tag and return true or false
+    for those certain tags"""
+    def detect_tags(self, html):
+    #hardcoded list of tags we want to report.
+    #scan through the html for those certain tags.
+    #print out a nice object returning the css property and whether it is true or false.
+        return 1
+
+
 
 
 def transform(html, base_url=None):
-    return Premailer(html, base_url=base_url).transform()
+    return Premailer(html, keep_style_tags=True,
+                     remove_classes=False,
+                     strip_important=False).transform()
+
 
 
 if __name__ == '__main__':
-    html = """<html>
+    html = u"""<html>
         <head>
         <title>Test</title>
         <style>
-        h1, h2 { color:red; }
+        @media screen and (max-width: 300px) {
+        body {
+            background-color: lightblue;
+            }
+        }
+        <!--testy-->
+        h1, h2 { color:red;  }
         strong {
           text-decoration:none
           }
@@ -469,4 +489,4 @@ if __name__ == '__main__':
         </body>
         </html>"""
     p = Premailer(html)
-    print p.transform()
+    print transform(html)
