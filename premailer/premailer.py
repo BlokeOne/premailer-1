@@ -449,6 +449,24 @@ class Premailer(object):
     """create a meta data reporting function, it will have hardcoded css tag and return true or false
     for those certain tags"""
     def detect_tags(self, html):
+        # instantiate object called input which will contain the html
+        input = html
+        # create a list of css elements to find
+        selectors = CSSSelector('p, h1')
+        # create xml element tree using input
+        tree = etree.fromstring(input)
+        # match selectors in the element tree
+        results = selectors(tree)
+        # print memory address of elements
+        print results
+
+        match = results[0]
+        print
+        # print actual html tags (value) that match
+        print etree.tostring(match)
+        print
+        match = results[1]
+        print etree.tostring(match)
 
         """
         instantiate the html object.
@@ -474,19 +492,10 @@ def transform(html, base_url=None):
 
 
 if __name__ == '__main__':
-    html = u"""<html>
+    html = """<html>
         <head>
         <title>Test</title>
         <style>
-        @media screen and (max-width: 300px) {
-        body {
-            background-color: lightblue;
-            }
-        }
-        @font-face {
-        font-family: DeliciousRoman;
-        src: url(/Delicious-Roman.otf);
-        }
         h1, h2 { color:red;  }
         strong {
           text-decoration:none
@@ -503,3 +512,4 @@ if __name__ == '__main__':
         </html>"""
     p = Premailer(html)
     print transform(html)
+    print p.detect_tags(html)
