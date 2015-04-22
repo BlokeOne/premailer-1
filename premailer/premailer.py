@@ -12,6 +12,7 @@ import os
 import re
 import urllib2
 import urlparse
+from BeautifulSoup import *
 
 import cssutils
 from lxml import etree
@@ -449,24 +450,52 @@ class Premailer(object):
     """create a meta data reporting function, it will have hardcoded css tag and return true or false
     for those certain tags"""
     def detect_tags(self, html):
-        # instantiate object called input which will contain the html
-        input = html
         # create a list of css elements to find
-        selectors = CSSSelector('p, h1')
+        sel = 'p'
+
+        selectors = CSSSelector(sel)
         # create xml element tree using input
-        tree = etree.fromstring(input)
+        tree = etree.fromstring(html)
         # match selectors in the element tree
         results = selectors(tree)
         # print memory address of elements
         print results
 
-        match = results[0]
-        print
+        #match = results[0]
+        #print match
         # print actual html tags (value) that match
-        print etree.tostring(match)
+        #print etree.tostring(match)
         print
-        match = results[1]
-        print etree.tostring(match)
+        #match = results[1]
+        #print etree.tostring(match)
+
+        #sheet = cssutils.css.CSSVariablesDeclaration(input)
+
+        #use Beautiful soup to parse the input
+        soup = BeautifulSoup(html)
+        #find all the <script> tags and place in a variable.
+        findScripts = soup.findAll('script')
+        #find all the <button> tags and place in a variable.
+        findButtons = soup.findAll('button')
+
+        #check the length of the list to find if any scripts were detected.
+        if len(findScripts) >= 1:
+            print "A Script Tag was detected"
+        #check the length of the list to find if any buttons were detected.
+        if len(findButtons) >= 1:
+            print "A Button Tag was detected"
+
+        # finalList = []
+        # i = 0
+        # while i <= len(results):
+        #     if sel == results[i]:
+        #         finalList.append((results[i], True))
+        #         i += 1
+        #     else:
+        #         finalList.append((results[i], True))
+        #         i += 1
+        #
+        # print finalList
 
         """
         instantiate the html object.
@@ -496,11 +525,13 @@ if __name__ == '__main__':
         <head>
         <title>Test</title>
         <style>
-        h1, h2 { color:red;  }
+        h1, h2 { color: red;  }
         strong {
           text-decoration:none
           }
-        p { font-size:2px }
+        p { font-size:2px;
+            width: 400px;
+            }
         p.footer { font-size: 1px}
         </style>
         </head>
@@ -508,6 +539,7 @@ if __name__ == '__main__':
         <h1>Hi!</h1>
         <p><strong>Yes!</strong></p>
         <p class="footer" style="color:red">Feetnuts</p>
+        <button type="button">Click Me!</button>
         </body>
         </html>"""
     p = Premailer(html)
