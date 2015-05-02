@@ -447,44 +447,90 @@ class Premailer(object):
                 continue
             element.attrib[key] = value
 
-    """create a meta data reporting function, it will have hardcoded css tag and return true or false
-    for those certain tags"""
+
     def detect_tags(self, html):
-        # create a list of css elements to find
-        sel = 'p'
+        """find tags within html and return True or False for each tag
+        """
 
-        selectors = CSSSelector(sel)
         # create xml element tree using input
-        tree = etree.fromstring(html)
-        # match selectors in the element tree
-        results = selectors(tree)
-        # print memory address of elements
-        print results
+        # make input html all lower case for finding/matching
+        tree = etree.fromstring(html.lower())
+        # List of tags detected.
+        detected = []
+        # List of keys to match boolean value
+        detectedNames = "style", "script", "button", "@media", "@font-face"
+        detectedCount = 0
 
-        #match = results[0]
-        #print match
-        # print actual html tags (value) that match
-        #print etree.tostring(match)
-        print
-        #match = results[1]
-        #print etree.tostring(match)
+        # Find tags
+        style = tree.xpath('//style')
+        script = tree.xpath('//script')
+        button = tree.xpath('//button')
+        # Put results in a list
+        tags = style, script, button
 
-        #sheet = cssutils.css.CSSVariablesDeclaration(input)
+        # Detect tags, adding boolean value for each tag (key) to detected list
+        for tag in tags:
+            if len(tag) >= 1:
+                detected.append({detectedNames[detectedCount]:True})
+            else:
+                detected.append({detectedNames[detectedCount]:False})
+            detectedCount += 1
 
-        #use Beautiful soup to parse the input
-        soup = BeautifulSoup(html)
-        #find all the <script> tags and place in a variable.
-        findScripts = soup.findAll('script')
-        #find all the <button> tags and place in a variable.
-        findButtons = soup.findAll('button')
+        # Media query detection (doesn't get value)
+        # search all style tags
+        for styleTag in range(0, len(style)):
+            thisStyle = etree.tostring(style[styleTag])
+            #mediadetect = style.find('@media')
+            mediaDetect = '@media' in thisStyle
+            fontFaceDetect = '@font-face' in thisStyle
+            if mediaDetect == True:
+                detected.append({detectedNames[detectedCount]:True})
+                detectedCount += 1
+                break
+        if mediaDetect == False:
+            detected.append({detectedNames[detectedCount]:False})
 
-        #check the length of the list to find if any scripts were detected.
-        if len(findScripts) >= 1:
-            print "A Script Tag was detected"
-        #check the length of the list to find if any buttons were detected.
-        if len(findButtons) >= 1:
-            print "A Button Tag was detected"
+        # Font-face detection, search all style tags
+        for styleTag in range(0, len(style)):
+            thisStyle = etree.tostring(style[styleTag])
+            fontFaceDetect = '@font-face' in thisStyle
+            if fontFaceDetect == True:
+                detected.append({detectedNames[detectedCount]:True})
+                detectedCount += 1
+                break
+        if fontFaceDetect == False:
+            detected.append({detectedNames[detectedCount]:False})
 
+
+
+        ######### attribute detection - Don't Delete ##########
+        #find any type attribute with a value of 'button'
+        #buttontype = tree.xpath('//@type="button"')
+        #print "buttontype = ", buttontype
+        #######################################################
+
+
+        #################### OLD STUFF - DELETE??? ####################
+        #
+        # # create a list of css elements to find
+        # sel = 'p'
+        # selectors = CSSSelector(sel)
+        #
+        # # match selectors in the element tree
+        # results = selectors(tree)
+        # # print memory address of elements
+        # print results
+        #
+        # match = results[0]
+        # print match
+        # # print actual html tags (value) that match
+        # print etree.tostring(match)
+        # print
+        # match = results[1]
+        # print etree.tostring(match)
+        #
+        #
+        #
         # finalList = []
         # i = 0
         # while i <= len(results):
@@ -496,19 +542,22 @@ class Premailer(object):
         #         i += 1
         #
         # print finalList
+        #
+        #
+        # instantiate the html object.
+        # if listOfElements == html.cssselect
+        #     return true
+        # else
+        #     return false
+        #
+        # #create a hardcoded list of tags we want to report.
+        #
+        # #scan through the html for those certain tags. use lxml.cssselect scan object for tag
+        # #print out a nice object returning the css property and whether it is true or false.
+        ######################################################
 
-        """
-        instantiate the html object.
-        if listOfElements == html.cssselect
-            return true
-        else
-            return false
-        """
-        #create a hardcoded list of tags we want to report.
-
-        #scan through the html for those certain tags. use lxml.cssselect scan object for tag
-        #print out a nice object returning the css property and whether it is true or false.
-        return 1
+        print
+        return detected
 
 
 
@@ -521,10 +570,16 @@ def transform(html, base_url=None):
 
 
 if __name__ == '__main__':
-    html = """<html>
+    html = u"""<html>
         <head>
         <title>Test</title>
+        <style></style>
         <style>
+        @media screen {
+            td, h1, h2, h3 {
+              font-family: 'Lato', 'Helvetica Neue', 'Arial', 'sans-serif' !important;
+            }
+          }
         h1, h2 { color: red;  }
         strong {
           text-decoration:none
