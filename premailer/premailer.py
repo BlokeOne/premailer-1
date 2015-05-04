@@ -127,7 +127,10 @@ class Premailer(object):
                  method="html",
                  base_path=None,
                  disable_basic_attributes=None,
-                 disable_validation=False):
+                 disable_validation=False,
+                 # detect_tags=False,
+                 # md=False
+    ):
         self.html = html
         self.base_url = base_url
         self.preserve_internal_links = preserve_internal_links
@@ -148,6 +151,23 @@ class Premailer(object):
             disable_basic_attributes = []
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
+
+
+        ###### Work in progress
+        # self.md = md
+        # self.detect_tags = detect_tags
+        # print "Detect %s" % detect_tags
+        # print "Meta %s" % md
+
+        # if self.md:
+        #     print "Function %s" % md
+        #     outMD = detect_tags(html)
+        #     return outMD
+
+        # if self.strip_important:
+        #     out = _importants.sub('', out)
+        # return out
+
 
 
     def _parse_style_rules(self, css_body, ruleset_index):
@@ -454,91 +474,81 @@ class Premailer(object):
         # create xml element tree using input
         # make input html all lower case for finding/matching
         tree = etree.fromstring(html.lower())
-        # List of tags detected.
-        detected = []
-        # # # Make a Dictionary
-        detecteddict = {}
+        # Make a Dictionary
+        detected = {}
         # List of keys to match boolean value
-        detectedNames = "style", "script", "button", "@media", "@font-face"
+        # Tag Button = <button></button>
+        # Attribute Button = <input type="button" />
+        detectedNames = "Style", "Script", "Tag Button", "Attribute Button", "@media", "@font-face"
         detectedCount = 0
+        mediaDetect = False
+        fontFaceDetect = False
 
         # Find tags
         style = tree.xpath('//style')
         script = tree.xpath('//script')
         button = tree.xpath('//button')
+        typeButton = tree.xpath('//input[@type="button"]')
+
         # Put results in a list
-        tags = style, script, button
+        tags = style, script, button, typeButton
 
         # Detect tags, adding boolean value for each tag (key) to detected list
         for tag in tags:
             if len(tag) >= 1:
-                # Add list
-                detected.append({detectedNames[detectedCount]:True})
                 # Add Dictionary
-                detecteddict[detectedNames[detectedCount]] = True
+                detected[detectedNames[detectedCount]] = True
             else:
-                # Add list
-                detected.append({detectedNames[detectedCount]:False})
                 # Add Dictionary
-                detecteddict[detectedNames[detectedCount]] = False
+                detected[detectedNames[detectedCount]] = False
             detectedCount += 1
 
-        # Media query detection (doesn't get value)
+        # if button tag not there, search for attribute type
+        if detected[detectedNames[detectedCount-1]] == False:
+            detected[detectedNames[detectedCount-1]] = typeButton
+
+        # Media query detection
         # search all style tags
         for styleTag in range(0, len(style)):
             thisStyle = etree.tostring(style[styleTag])
-            # mediadetect = style.find('@media')
             mediaDetect = '@media' in thisStyle
-            fontFaceDetect = '@font-face' in thisStyle
-            if mediaDetect == True:
-                # Add list
-                detected.append({detectedNames[detectedCount]:True})
+            if mediaDetect:
                 # Add Dictionary
-                detecteddict[detectedNames[detectedCount]] = True
+                detected[detectedNames[detectedCount]] = True
                 detectedCount += 1
                 break
-        if mediaDetect == False:
-            # Add list
-            detected.append({detectedNames[detectedCount]:False})
+        if not mediaDetect:
             # Add Dictionary
-            detecteddict[detectedNames[detectedCount]] = False
+            detected[detectedNames[detectedCount]] = False
+            detectedCount += 1
 
         # Font-face detection, search all style tags
         for styleTag in range(0, len(style)):
             thisStyle = etree.tostring(style[styleTag])
             fontFaceDetect = '@font-face' in thisStyle
-            if fontFaceDetect == True:
-                # Add list
-                detected.append({detectedNames[detectedCount]:True})
+            if fontFaceDetect:
                 # Add Dictionary
-                detecteddict[detectedNames[detectedCount]] = True
+                detected[detectedNames[detectedCount]] = True
                 detectedCount += 1
                 break
-        if fontFaceDetect == False:
-            # Add list
-            detected.append({detectedNames[detectedCount]:False})
+        if not fontFaceDetect:
             # Add Dictionary
-            detecteddict[detectedNames[detectedCount]] = False
+            detected[detectedNames[detectedCount]] = False
+            detectedCount += 1
 
-
-        ######### attribute detection - Don't Delete ##########
-        # find any type attribute with a value of 'button'
-        # buttontype = tree.xpath('//@type="button"')
-        # print "buttontype = ", buttontype
-        #######################################################
-
-        print "------------Dictionary Items -----------"
-        print detecteddict
         print
         print "------------Ordered Dictionary Items - Alphabetically. -----------"
         print "{"
-        for key in sorted(detecteddict):
-            print "   %s: %s" % (key, detecteddict[key])
+        for key in sorted(detected):
+            print "   %s: %s" % (key, detected[key])
         print "}"
         print
-        print "------------List Items -----------"
 
+        print "------------Dictionary Items -----------"
+
+        print
         return detected
+
 
 
 
@@ -557,11 +567,15 @@ if __name__ == '__main__':
         <title>Test</title>
         <style></style>
         <style>
-        @media screen {
-            td, h1, h2, h3 {
-              font-family: 'Lato', 'Helvetica Neue', 'Arial', 'sans-serif' !important;
-            }
-          }
+
+        @font-face {
+            font-family: myFirstFont;
+            src: url(sansation_bold.woff);
+            font-weight: bold;
+        }
+        .testClass {
+            font-family: 'Arial';
+        }
         h1, h2 { color: red;  }
         strong {
           text-decoration:none
@@ -576,9 +590,11 @@ if __name__ == '__main__':
         <h1>Hi!</h1>
         <p><strong>Yes!</strong></p>
         <p class="footer" style="color:red">Feetnuts</p>
-        <button type="button">Click Me!</button>
+
+        <input type="button" />
         </body>
         </html>"""
     p = Premailer(html)
-    print transform(html)
+    # print transform(html)
     print p.detect_tags(html)
+
