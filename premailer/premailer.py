@@ -12,7 +12,7 @@ import os
 import re
 import urllib2
 import urlparse
-from BeautifulSoup import *
+
 
 import cssutils
 from lxml import etree
@@ -27,7 +27,7 @@ class PremailerError(Exception):
 
 
 grouping_regex = re.compile('([:\-\w]*){([^}]+)}')
-# this is a test comment
+
 
 def merge_styles(old, new, class_=''):
     """
@@ -451,12 +451,13 @@ class Premailer(object):
     def detect_tags(self, html):
         """find tags within html and return True or False for each tag
         """
-
         # create xml element tree using input
         # make input html all lower case for finding/matching
         tree = etree.fromstring(html.lower())
         # List of tags detected.
         detected = []
+        # # # Make a Dictionary
+        detecteddict = {}
         # List of keys to match boolean value
         detectedNames = "style", "script", "button", "@media", "@font-face"
         detectedCount = 0
@@ -471,93 +472,74 @@ class Premailer(object):
         # Detect tags, adding boolean value for each tag (key) to detected list
         for tag in tags:
             if len(tag) >= 1:
+                # Add list
                 detected.append({detectedNames[detectedCount]:True})
+                # Add Dictionary
+                detecteddict[detectedNames[detectedCount]] = True
             else:
+                # Add list
                 detected.append({detectedNames[detectedCount]:False})
+                # Add Dictionary
+                detecteddict[detectedNames[detectedCount]] = False
             detectedCount += 1
 
         # Media query detection (doesn't get value)
         # search all style tags
         for styleTag in range(0, len(style)):
             thisStyle = etree.tostring(style[styleTag])
-            #mediadetect = style.find('@media')
+            # mediadetect = style.find('@media')
             mediaDetect = '@media' in thisStyle
             fontFaceDetect = '@font-face' in thisStyle
             if mediaDetect == True:
+                # Add list
                 detected.append({detectedNames[detectedCount]:True})
+                # Add Dictionary
+                detecteddict[detectedNames[detectedCount]] = True
                 detectedCount += 1
                 break
         if mediaDetect == False:
+            # Add list
             detected.append({detectedNames[detectedCount]:False})
+            # Add Dictionary
+            detecteddict[detectedNames[detectedCount]] = False
 
         # Font-face detection, search all style tags
         for styleTag in range(0, len(style)):
             thisStyle = etree.tostring(style[styleTag])
             fontFaceDetect = '@font-face' in thisStyle
             if fontFaceDetect == True:
+                # Add list
                 detected.append({detectedNames[detectedCount]:True})
+                # Add Dictionary
+                detecteddict[detectedNames[detectedCount]] = True
                 detectedCount += 1
                 break
         if fontFaceDetect == False:
+            # Add list
             detected.append({detectedNames[detectedCount]:False})
-
+            # Add Dictionary
+            detecteddict[detectedNames[detectedCount]] = False
 
 
         ######### attribute detection - Don't Delete ##########
-        #find any type attribute with a value of 'button'
-        #buttontype = tree.xpath('//@type="button"')
-        #print "buttontype = ", buttontype
+        # find any type attribute with a value of 'button'
+        # buttontype = tree.xpath('//@type="button"')
+        # print "buttontype = ", buttontype
         #######################################################
 
-
-        #################### OLD STUFF - DELETE??? ####################
-        #
-        # # create a list of css elements to find
-        # sel = 'p'
-        # selectors = CSSSelector(sel)
-        #
-        # # match selectors in the element tree
-        # results = selectors(tree)
-        # # print memory address of elements
-        # print results
-        #
-        # match = results[0]
-        # print match
-        # # print actual html tags (value) that match
-        # print etree.tostring(match)
-        # print
-        # match = results[1]
-        # print etree.tostring(match)
-        #
-        #
-        #
-        # finalList = []
-        # i = 0
-        # while i <= len(results):
-        #     if sel == results[i]:
-        #         finalList.append((results[i], True))
-        #         i += 1
-        #     else:
-        #         finalList.append((results[i], True))
-        #         i += 1
-        #
-        # print finalList
-        #
-        #
-        # instantiate the html object.
-        # if listOfElements == html.cssselect
-        #     return true
-        # else
-        #     return false
-        #
-        # #create a hardcoded list of tags we want to report.
-        #
-        # #scan through the html for those certain tags. use lxml.cssselect scan object for tag
-        # #print out a nice object returning the css property and whether it is true or false.
-        ######################################################
-
+        print "------------Dictionary Items -----------"
+        print detecteddict
         print
+        print "------------Ordered Dictionary Items - Alphabetically. -----------"
+        print "{"
+        for key in sorted(detecteddict):
+            print "   %s: %s" % (key, detecteddict[key])
+        print "}"
+        print
+        print "------------List Items -----------"
+
         return detected
+
 
 
 
