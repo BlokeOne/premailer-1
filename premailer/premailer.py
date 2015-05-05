@@ -12,6 +12,7 @@ import os
 import re
 import urllib2
 import urlparse
+import sys
 
 
 import cssutils
@@ -128,8 +129,7 @@ class Premailer(object):
                  base_path=None,
                  disable_basic_attributes=None,
                  disable_validation=False,
-                 # detect_tags=False,
-                 # md=False
+                 metadata=False
     ):
         self.html = html
         self.base_url = base_url
@@ -151,23 +151,11 @@ class Premailer(object):
             disable_basic_attributes = []
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
+        self.metadata = metadata
 
-
-        ###### Work in progress
-        # self.md = md
-        # self.detect_tags = detect_tags
-        # print "Detect %s" % detect_tags
-        # print "Meta %s" % md
-
-        # if self.md:
-        #     print "Function %s" % md
-        #     outMD = detect_tags(html)
-        #     return outMD
-
-        # if self.strip_important:
-        #     out = _importants.sub('', out)
-        # return out
-
+        if self.metadata:
+            print self.detect_tags(html)
+            sys.exit()
 
 
     def _parse_style_rules(self, css_body, ruleset_index):
@@ -240,9 +228,9 @@ class Premailer(object):
             raise PremailerError("Could not parse the html")
         assert page is not None
 
-        ##
-        ## style selectors
-        ##
+        # #
+        # # style selectors
+        # #
 
         rules = []
         index = 0
@@ -457,7 +445,7 @@ class Premailer(object):
                 if value.endswith('px'):
                     value = value[:-2]
                 attributes[key] = value
-                #else:
+                # else:
                 #    print "key", repr(key)
                 #    print 'value', repr(value)
 
@@ -474,7 +462,7 @@ class Premailer(object):
         # create xml element tree using input
         # make input html all lower case for finding/matching
         tree = etree.fromstring(html.lower())
-        # Make a Dictionary
+        # Make a Dictionary of detected tag
         detected = {}
         # List of keys to match boolean value
         # Tag Button = <button></button>
@@ -536,17 +524,16 @@ class Premailer(object):
             detected[detectedNames[detectedCount]] = False
             detectedCount += 1
 
-        print
-        print "------------Ordered Dictionary Items - Alphabetically. -----------"
-        print "{"
-        for key in sorted(detected):
-            print "   %s: %s" % (key, detected[key])
-        print "}"
-        print
+        # print
+        # print "------------Ordered Dictionary Items - Alphabetically. -----------"
+        # print "{"
+        # for key in sorted(detected):
+        #     print "   %s: %s" % (key, detected[key])
+        # print "}"
+        # print
+
 
         print "------------Dictionary Items -----------"
-
-        print
         return detected
 
 
@@ -557,7 +544,8 @@ class Premailer(object):
 def transform(html, base_url=None):
     return Premailer(html, keep_style_tags=True,
                      remove_classes=False,
-                     strip_important=False).transform()
+                     strip_important=False,
+                     metadata=True).transform()
 
 
 
@@ -595,6 +583,6 @@ if __name__ == '__main__':
         </body>
         </html>"""
     p = Premailer(html)
-    # print transform(html)
-    print p.detect_tags(html)
+    print transform(html)
+    # print p.detect_tags(html)
 
