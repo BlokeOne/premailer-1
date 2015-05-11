@@ -1,7 +1,7 @@
 import unittest
 import sys
 
-from premailer import Premailer, etree, detect_tags
+from premailer import Premailer, etree
 
 class Tests(unittest.TestCase):
 
@@ -43,3 +43,13 @@ class Tests(unittest.TestCase):
         <input type="button" />
         </body>
         </html>"""
+
+        p = Premailer(html)
+        a = {'Button-Element': False, 'Style': True, 'Script': False, '@media': True, 'Button-Attribute': True, '@font-face': True}
+        b = p.detect_tags(html)
+        self.assertDictContainsSubset(a, b)
+
+        # print a
+        # print b
+        # print p.detect_tags(html)
+        # p = Premailer(html)

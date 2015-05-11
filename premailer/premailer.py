@@ -465,9 +465,9 @@ class Premailer(object):
         # Make a Dictionary of detected tag
         detected = {}
         # List of keys to match boolean value
-        # Tag Button = <button></button>
-        # Attribute Button = <input type="button" />
-        detectedNames = "Style", "Script", "Tag Button", "Attribute Button", "@media", "@font-face"
+        # Button-Element = <button></button>
+        # Button-Attribute = <input type="button" />
+        detectedNames = "Style", "Script", "Button-Element", "Button-Attribute", "@media", "@font-face"
         detectedCount = 0
         mediaDetect = False
         fontFaceDetect = False
@@ -524,21 +524,12 @@ class Premailer(object):
             detected[detectedNames[detectedCount]] = False
             detectedCount += 1
 
-        # print
-        # print "------------Ordered Dictionary Items - Alphabetically. -----------"
-        # print "{"
-        # for key in sorted(detected):
-        #     print "   %s: %s" % (key, detected[key])
-        # print "}"
-        # print
+        # output a formatted dictionary (detected)
+        formatdetected = ""
+        for key in sorted(detected):
+            formatdetected += "   %s: %s \n" % (key, detected[key])
 
-
-        print "------------Dictionary Items -----------"
         return detected
-
-
-
-
 
 
 def transform(html, base_url=None):
@@ -555,7 +546,11 @@ if __name__ == '__main__':
         <title>Test</title>
         <style></style>
         <style>
-
+        @media screen and (max-width: 300px) {
+            body {
+                background-color: lightblue;
+            }
+        }
         @font-face {
             font-family: myFirstFont;
             src: url(sansation_bold.woff);
@@ -585,4 +580,6 @@ if __name__ == '__main__':
     p = Premailer(html)
     print transform(html)
     # print p.detect_tags(html)
+
+
 
