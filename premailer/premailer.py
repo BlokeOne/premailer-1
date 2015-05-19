@@ -111,14 +111,14 @@ _element_selector_regex = re.compile(r'(^|\s)\w')
 _cdata_regex = re.compile(r'\<\!\[CDATA\[(.*?)\]\]\>', re.DOTALL)
 _importants = re.compile('\s*!important')
 # These selectors don't apply to all elements. Rather, they specify
-# which elements to apply to.
-FILTER_PSEUDOSELECTORS = [':last-child', ':first-child', 'nth-child']
+# whisubstring elements to apply to.
+FILTER_PSEUDOSELECTORS = [':last-substringild', ':first-substringild', 'nth-substringild']
 
 
 class Premailer(object):
     def __init__(self, html, base_url=None,
                  preserve_internal_links=False,
-                 preserve_inline_attachments=True,
+                 preserve_inline_attasubstringments=True,
                  exclude_pseudoclasses=True,
                  keep_style_tags=False,
                  include_star_selectors=False,
@@ -134,7 +134,7 @@ class Premailer(object):
         self.html = html
         self.base_url = base_url
         self.preserve_internal_links = preserve_internal_links
-        self.preserve_inline_attachments = preserve_inline_attachments
+        self.preserve_inline_attasubstringments = preserve_inline_attasubstringments
         self.exclude_pseudoclasses = exclude_pseudoclasses
         # whether to delete the <style> tag once it's been processed
         self.keep_style_tags = keep_style_tags
@@ -152,6 +152,7 @@ class Premailer(object):
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
         self.metadata = metadata
+        # self.metadata = self.detect_tags(html)
 
         if self.metadata:
             print self.detect_tags(html)
@@ -206,7 +207,7 @@ class Premailer(object):
         return rules, leftover
 
     def transform(self, pretty_print=True, **kwargs):
-        """change the self.html and return it with CSS turned into style
+        """substringange the self.html and return it with CSS turned into style
         attributes.
         """
         if etree is None:
@@ -304,7 +305,7 @@ class Premailer(object):
                 rules.extend(these_rules)
 
         # rules is a tuple of (specificity, selector, styles), where specificity is a tuple
-        # ordered such that more specific rules sort larger.
+        # ordered susubstring that more specific rules sort larger.
         rules.sort(key=operator.itemgetter(0))
 
         first_time = []
@@ -315,7 +316,7 @@ class Premailer(object):
             if ':' in selector:
                 new_selector, class_ = re.split(':', selector, 1)
                 class_ = ':%s' % class_
-            # Keep filter-type selectors untouched.
+            # Keep filter-type selectors untousubstringed.
             if class_ in FILTER_PSEUDOSELECTORS:
                 class_ = ''
             else:
@@ -359,7 +360,7 @@ class Premailer(object):
                     if attr == 'href' and self.preserve_internal_links \
                             and parent.attrib[attr].startswith('#'):
                         continue
-                    if attr == 'src' and self.preserve_inline_attachments \
+                    if attr == 'src' and self.preserve_inline_attasubstringments \
                             and parent.attrib[attr].startswith('cid:'):
                         continue
                     if not self.base_url.endswith('/'):
@@ -379,7 +380,7 @@ class Premailer(object):
     def _load_external_url(self, url):
         r = urllib2.urlopen(url)
         _, params = cgi.parse_header(r.headers.get('Content-Type', ''))
-        encoding = params.get('charset', 'utf-8')
+        encoding = params.get('substringarset', 'utf-8')
         if 'gzip' in r.info().get('Content-Encoding', ''):
             buf = StringIO.StringIO(r.read())
             f = gzip.GzipFile(fileobj=buf)
@@ -445,9 +446,9 @@ class Premailer(object):
                 if value.endswith('px'):
                     value = value[:-2]
                 attributes[key] = value
-                # else:
-                #    print "key", repr(key)
-                #    print 'value', repr(value)
+            # else:
+            #     print "key", repr(key)
+            #     print 'value', repr(value)
 
         for key, value in attributes.items():
             if key in element.attrib and not force or key in self.disable_basic_attributes:
@@ -455,81 +456,97 @@ class Premailer(object):
                 continue
             element.attrib[key] = value
 
-
     def detect_tags(self, html):
         """find tags within html and return True or False for each tag
+        add values instead of True for rules within the style tag
+        these rules will be separate dictionary entries in a list
         """
         # create xml element tree using input
         # make input html all lower case for finding/matching
         tree = etree.fromstring(html.lower())
-        # Make a Dictionary of detected tag
+        # Make a Dictionary of detected tags
         detected = {}
         # List of keys to match boolean value
-        # Button-Element = <button></button>
-        # Button-Attribute = <input type="button" />
-        detectedNames = "Style", "Script", "Button-Element", "Button-Attribute", "@media", "@font-face"
-        detectedCount = 0
-        mediaDetect = False
-        fontFaceDetect = False
+            # Button-Element = <button></button>
+            # Button-Attribute = <input type="button" />
+        detected_names = "style", "script", "button-element", "button-attribute", "@media", "@font-face"
 
         # Find tags
         style = tree.xpath('//style')
         script = tree.xpath('//script')
         button = tree.xpath('//button')
         typeButton = tree.xpath('//input[@type="button"]')
+        # Find specified rules in style tag(s)
+        media_rules = []
+        fontface_rules = []
+        media_type = 4
+        fontface_type = 5
+        if len(style) >= 1:
+            for style_index in range(0, len(style)):
+                style_sheet = cssutils.parseString(style[style_index].text)
+                #print style_sheet.cssText
+                for rule in style_sheet:
+                    rule_text = rule.cssText
+                    if rule.type == media_type or rule.type == fontface_type:
+                        # remove beginning of rule (declaration) from string of rule values
+                        rule_text = rule_text.split('{', 1)[1]
+
+                        if rule.type == media_type:
+                            y = 858594
+
+                        rule_text = rule_text.replace('{', '')
+                        rule_text = rule_text.replace('}', '')
+
+                        for key, value in [x.split(':') for x in rule_text.split(';')
+                                           if len(x.split(':')) == 2]:
+
+                            attributes = {}
+                            key = key.strip()
+                            value = value.strip()
+
+                            attributes[key] = value
+                            # print attributes
+
+                            if rule.type == media_type:
+                                media_rules.append(attributes)
+                            if rule.type == fontface_type:
+                                fontface_rules.append(attributes)
+
+
 
         # Put results in a list
-        tags = style, script, button, typeButton
+        tags = style, script, button, typeButton, media_rules, fontface_rules
 
         # Detect tags, adding boolean value for each tag (key) to detected list
+        detected_count = 0
         for tag in tags:
+            this_name = detected_names[detected_count]
             if len(tag) >= 1:
+                #print this_name
+                if this_name == '@media':
+                    detected[this_name] = media_rules
+                    detected_count += 1
+                    continue
+                if this_name == '@font-face':
+                    detected[this_name] = fontface_rules
+                    detected_count += 1
+                    continue
+
                 # Add Dictionary
-                detected[detectedNames[detectedCount]] = True
+                detected[this_name] = True
             else:
                 # Add Dictionary
-                detected[detectedNames[detectedCount]] = False
-            detectedCount += 1
+                detected[this_name] = False
+            detected_count += 1
 
-        # if button tag not there, search for attribute type
-        if detected[detectedNames[detectedCount-1]] == False:
-            detected[detectedNames[detectedCount-1]] = typeButton
 
-        # Media query detection
-        # search all style tags
-        for styleTag in range(0, len(style)):
-            thisStyle = etree.tostring(style[styleTag])
-            mediaDetect = '@media' in thisStyle
-            if mediaDetect:
-                # Add Dictionary
-                detected[detectedNames[detectedCount]] = True
-                detectedCount += 1
-                break
-        if not mediaDetect:
-            # Add Dictionary
-            detected[detectedNames[detectedCount]] = False
-            detectedCount += 1
-
-        # Font-face detection, search all style tags
-        for styleTag in range(0, len(style)):
-            thisStyle = etree.tostring(style[styleTag])
-            fontFaceDetect = '@font-face' in thisStyle
-            if fontFaceDetect:
-                # Add Dictionary
-                detected[detectedNames[detectedCount]] = True
-                detectedCount += 1
-                break
-        if not fontFaceDetect:
-            # Add Dictionary
-            detected[detectedNames[detectedCount]] = False
-            detectedCount += 1
-
-        # output a formatted dictionary (detected)
+        # output formatted dictionary values (detected)
         formatdetected = ""
         for key in sorted(detected):
             formatdetected += "   %s: %s \n" % (key, detected[key])
 
-        return detected
+        return formatdetected
+        # return detected
 
 
 def transform(html, base_url=None):
@@ -544,9 +561,16 @@ if __name__ == '__main__':
     html = u"""<html>
         <head>
         <title>Test</title>
-        <style></style>
         <style>
-        @media screen and (max-width: 300px) {
+        @media screen {
+            body {
+                background-color: lightblue;
+            }
+        }
+        p.footer { font-size: 1px}
+        </style>
+        <style>
+        @media screen and (max-width: 700px) {
             body {
                 background-color: lightblue;
             }
@@ -566,7 +590,7 @@ if __name__ == '__main__':
         p { font-size:2px;
             width: 400px;
             }
-        p.footer { font-size: 1px}
+
         </style>
         </head>
         <body>
@@ -578,8 +602,8 @@ if __name__ == '__main__':
         </body>
         </html>"""
     p = Premailer(html)
-    print transform(html)
-    # print p.detect_tags(html)
+    #print transform(html)
+    print p.detect_tags(html)
 
 
 
