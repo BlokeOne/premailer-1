@@ -111,14 +111,14 @@ _element_selector_regex = re.compile(r'(^|\s)\w')
 _cdata_regex = re.compile(r'\<\!\[CDATA\[(.*?)\]\]\>', re.DOTALL)
 _importants = re.compile('\s*!important')
 # These selectors don't apply to all elements. Rather, they specify
-# whisubstring elements to apply to.
-FILTER_PSEUDOSELECTORS = [':last-substringild', ':first-substringild', 'nth-substringild']
+# which elements to apply to.
+FILTER_PSEUDOSELECTORS = [':last-child', ':first-child', 'nth-child']
 
 
 class Premailer(object):
     def __init__(self, html, base_url=None,
                  preserve_internal_links=False,
-                 preserve_inline_attasubstringments=True,
+                 preserve_inline_attachments=True,
                  exclude_pseudoclasses=True,
                  keep_style_tags=False,
                  include_star_selectors=False,
@@ -134,7 +134,7 @@ class Premailer(object):
         self.html = html
         self.base_url = base_url
         self.preserve_internal_links = preserve_internal_links
-        self.preserve_inline_attasubstringments = preserve_inline_attasubstringments
+        self.preserve_inline_attachments = preserve_inline_attachments
         self.exclude_pseudoclasses = exclude_pseudoclasses
         # whether to delete the <style> tag once it's been processed
         self.keep_style_tags = keep_style_tags
@@ -207,7 +207,7 @@ class Premailer(object):
         return rules, leftover
 
     def transform(self, pretty_print=True, **kwargs):
-        """substringange the self.html and return it with CSS turned into style
+        """change the self.html and return it with CSS turned into style
         attributes.
         """
         if etree is None:
@@ -305,7 +305,7 @@ class Premailer(object):
                 rules.extend(these_rules)
 
         # rules is a tuple of (specificity, selector, styles), where specificity is a tuple
-        # ordered susubstring that more specific rules sort larger.
+        # ordered such that more specific rules sort larger.
         rules.sort(key=operator.itemgetter(0))
 
         first_time = []
@@ -316,7 +316,7 @@ class Premailer(object):
             if ':' in selector:
                 new_selector, class_ = re.split(':', selector, 1)
                 class_ = ':%s' % class_
-            # Keep filter-type selectors untousubstringed.
+            # Keep filter-type selectors untouched.
             if class_ in FILTER_PSEUDOSELECTORS:
                 class_ = ''
             else:
@@ -360,7 +360,7 @@ class Premailer(object):
                     if attr == 'href' and self.preserve_internal_links \
                             and parent.attrib[attr].startswith('#'):
                         continue
-                    if attr == 'src' and self.preserve_inline_attasubstringments \
+                    if attr == 'src' and self.preserve_inline_attachments \
                             and parent.attrib[attr].startswith('cid:'):
                         continue
                     if not self.base_url.endswith('/'):
@@ -380,7 +380,7 @@ class Premailer(object):
     def _load_external_url(self, url):
         r = urllib2.urlopen(url)
         _, params = cgi.parse_header(r.headers.get('Content-Type', ''))
-        encoding = params.get('substringarset', 'utf-8')
+        encoding = params.get('charset', 'utf-8')
         if 'gzip' in r.info().get('Content-Encoding', ''):
             buf = StringIO.StringIO(r.read())
             f = gzip.GzipFile(fileobj=buf)
@@ -460,6 +460,8 @@ class Premailer(object):
         """find tags within html and return True or False for each tag
         add values instead of True for rules within the style tag
         these rules will be separate dictionary entries in a list
+
+        NOTE: doesn't account for nested media queries
         """
         # create xml element tree using input
         # make input html all lower case for finding/matching
@@ -488,11 +490,24 @@ class Premailer(object):
                 for rule in style_sheet:
                     rule_text = rule.cssText
                     if rule.type == media_type or rule.type == fontface_type:
-                        # remove beginning of rule (declaration) from string of rule values
-                        rule_text = rule_text.split('{', 1)[1]
+                        # remove beginning of rule (declaration) from rule string
+                        declaration, rule_text = rule_text.split('{', 1)
+                        # print "declaration = ", declaration
+                        declaration.strip()
+                        if declaration.startswith('@media screen and'):
+                            dec_value = declaration.split('(', 1)[1]
+                            dec_value = dec_value.replace(')', '')
+                            k, v = dec_value.split(':')
+                            k, v = k.strip(), v.strip()
+                            # print k, v
+                            media_dec_entry = {k:v}
+                            # print media_dec_entry
+                                # not used for anything yet
 
                         if rule.type == media_type:
-                            y = 858594
+                            media_values = []
+                                # not used for anything yet
+                            #print rule.cssText
 
                         rule_text = rule_text.replace('{', '')
                         rule_text = rule_text.replace('}', '')
@@ -505,7 +520,7 @@ class Premailer(object):
                             value = value.strip()
 
                             attributes[key] = value
-                            # print attributes
+                            # attributes
 
                             if rule.type == media_type:
                                 media_rules.append(attributes)
