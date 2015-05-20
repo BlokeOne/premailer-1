@@ -12,7 +12,6 @@ import os
 import re
 import urllib2
 import urlparse
-import sys
 
 
 import cssutils
@@ -151,13 +150,11 @@ class Premailer(object):
             disable_basic_attributes = []
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
-        self.metadata = metadata
-        # self.metadata = self.detect_tags(html)
-
-        if self.metadata:
+        #  self.metadata = metadata
+        if metadata == True:
+            self.metadata = self.detect_tags(html)
             print self.detect_tags(html)
-            sys.exit()
-
+            raise SystemExit
 
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
@@ -458,79 +455,94 @@ class Premailer(object):
 
     def detect_tags(self, html):
         """find tags within html and return True or False for each tag
-        add values instead of True for rules within the style tag
+        add values instead of True for rules within the style tag (@font-face, @media)
         these rules will be separate dictionary entries in a list
-
-        NOTE: doesn't account for nested media queries
         """
+
         # create xml element tree using input
         # make input html all lower case for finding/matching
         tree = etree.fromstring(html.lower())
         # Make a Dictionary of detected tags
         detected = {}
         # List of keys to match boolean value
-            # Button-Element = <button></button>
-            # Button-Attribute = <input type="button" />
+        #   Button-Element = <button></button>
+        #   Button-Attribute = <input type="button" />
         detected_names = "style", "script", "button-element", "button-attribute", "@media", "@font-face"
 
         # Find tags
         style = tree.xpath('//style')
         script = tree.xpath('//script')
         button = tree.xpath('//button')
-        typeButton = tree.xpath('//input[@type="button"]')
+        type_button = tree.xpath('//input[@type="button"]')
         # Find specified rules in style tag(s)
         media_rules = []
         fontface_rules = []
         media_type = 4
         fontface_type = 5
+        # if True
         if len(style) >= 1:
             for style_index in range(0, len(style)):
                 style_sheet = cssutils.parseString(style[style_index].text)
-                #print style_sheet.cssText
                 for rule in style_sheet:
                     rule_text = rule.cssText
-                    if rule.type == media_type or rule.type == fontface_type:
+                    if rule.type == fontface_type:
                         # remove beginning of rule (declaration) from rule string
                         declaration, rule_text = rule_text.split('{', 1)
-                        # print "declaration = ", declaration
                         declaration.strip()
-                        if declaration.startswith('@media screen and'):
-                            dec_value = declaration.split('(', 1)[1]
-                            dec_value = dec_value.replace(')', '')
-                            k, v = dec_value.split(':')
-                            k, v = k.strip(), v.strip()
-                            # print k, v
-                            media_dec_entry = {k:v}
-                            # print media_dec_entry
-                                # not used for anything yet
 
-                        if rule.type == media_type:
-                            media_values = []
-                                # not used for anything yet
-                            #print rule.cssText
+                        ##### work in progress - @media detail #####
+                        # if rule.type == media_type:
+                        #     media_rulesets = {}
+                        #     media_values = []
+                        #     ruleset_count = rule_text.count('{')
+                        #     media_elements = rule_text.split('{')
+                        #
+                        #     for i in range(len(media_elements)):
+                        #         print media_elements[i]
+                        #
+                        #         for key, value in [x.split(':') for x in media_elements[i].split(';')
+                        #                        if len(x.split(':')) == 2]:
+                        #
+                        #             attributes = {}
+                        #             key = key.strip()
+                        #             value = value.strip()
+                        #             # print "key = ", key
+                        #             # print "value = ", value
+                        #
+                        #             attributes[key] = value
+                        #             #print attributes
+                        #
+                        #
+                        #             media_rules.append(attributes)
+
 
                         rule_text = rule_text.replace('{', '')
                         rule_text = rule_text.replace('}', '')
 
+                        #if rule.type == fontface_type:
                         for key, value in [x.split(':') for x in rule_text.split(';')
                                            if len(x.split(':')) == 2]:
-
                             attributes = {}
                             key = key.strip()
                             value = value.strip()
-
                             attributes[key] = value
-                            # attributes
+                            fontface_rules.append(attributes)
 
-                            if rule.type == media_type:
-                                media_rules.append(attributes)
-                            if rule.type == fontface_type:
-                                fontface_rules.append(attributes)
+                    if rule.type == media_type:
+                        this_declaration = {}
+                        # remove beginning of rule (declaration) from rule string
+                        declaration, rule_text = rule_text.split('{', 1)
+
+                        k, v = declaration.split(' ', 1)
+                        k, v = k.strip(), v.strip()
+
+                        this_declaration[k] = v
+                        media_rules.append(this_declaration)
 
 
 
         # Put results in a list
-        tags = style, script, button, typeButton, media_rules, fontface_rules
+        tags = style, script, button, type_button, media_rules, fontface_rules
 
         # Detect tags, adding boolean value for each tag (key) to detected list
         detected_count = 0
@@ -556,12 +568,12 @@ class Premailer(object):
 
 
         # output formatted dictionary values (detected)
-        formatdetected = ""
+        format_detected = ""
         for key in sorted(detected):
-            formatdetected += "   %s: %s \n" % (key, detected[key])
+            format_detected += "   %s: %s \n" % (key, detected[key])
 
-        return formatdetected
-        # return detected
+        return detected
+        # return format_detected
 
 
 def transform(html, base_url=None):
@@ -578,6 +590,10 @@ if __name__ == '__main__':
         <title>Test</title>
         <style>
         @media screen {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
             body {
                 background-color: lightblue;
             }
@@ -617,8 +633,8 @@ if __name__ == '__main__':
         </body>
         </html>"""
     p = Premailer(html)
-    #print transform(html)
-    print p.detect_tags(html)
+    print transform(html)
+    #print p.detect_tags(html)
 
 
 
