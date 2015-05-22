@@ -152,7 +152,7 @@ class Premailer(object):
         self.disable_validation = disable_validation
         #  self.metadata = metadata
         if metadata == True:
-            self.metadata = self.detect_tags(html)
+            #self.metadata = self.detect_tags(html)
             print self.detect_tags(html)
             raise SystemExit
 
@@ -455,8 +455,7 @@ class Premailer(object):
 
     def detect_tags(self, html):
         """find tags within html and return True or False for each tag
-        add values instead of True for rules within the style tag (@font-face, @media)
-        these rules will be separate dictionary entries in a list
+        add declarations instead of True for rules within the style tag
         """
 
         # create xml element tree using input
@@ -474,82 +473,86 @@ class Premailer(object):
         script = tree.xpath('//script')
         button = tree.xpath('//button')
         type_button = tree.xpath('//input[@type="button"]')
+
         # Find specified rules in style tag(s)
         media_rules = []
         fontface_rules = []
         media_type = 4
         fontface_type = 5
-        # if True
+        # at least one style tag
         if len(style) >= 1:
-            for style_index in range(0, len(style)):
+            for style_index in range(len(style)):
                 style_sheet = cssutils.parseString(style[style_index].text)
                 for rule in style_sheet:
+                    if rule.type != fontface_type and rule.type != media_type:
+                        continue
+
                     rule_text = rule.cssText
+                    # remove beginning of rule (definition) from rule string
+                    #   exposing the selectors and their declarations
+                    rule_definition, rule_text = rule_text.split('{', 1)
+                    rule_definition.strip()
+
                     if rule.type == fontface_type:
-                        # remove beginning of rule (declaration) from rule string
-                        declaration, rule_text = rule_text.split('{', 1)
-                        declaration.strip()
-
-                        ##### work in progress - @media detail #####
-                        # if rule.type == media_type:
-                        #     media_rulesets = {}
-                        #     media_values = []
-                        #     ruleset_count = rule_text.count('{')
-                        #     media_elements = rule_text.split('{')
-                        #
-                        #     for i in range(len(media_elements)):
-                        #         print media_elements[i]
-                        #
-                        #         for key, value in [x.split(':') for x in media_elements[i].split(';')
-                        #                        if len(x.split(':')) == 2]:
-                        #
-                        #             attributes = {}
-                        #             key = key.strip()
-                        #             value = value.strip()
-                        #             # print "key = ", key
-                        #             # print "value = ", value
-                        #
-                        #             attributes[key] = value
-                        #             #print attributes
-                        #
-                        #
-                        #             media_rules.append(attributes)
-
-
-                        rule_text = rule_text.replace('{', '')
                         rule_text = rule_text.replace('}', '')
 
-                        #if rule.type == fontface_type:
-                        for key, value in [x.split(':') for x in rule_text.split(';')
+                        for property, value in [x.split(':') for x in rule_text.split(';')
                                            if len(x.split(':')) == 2]:
-                            attributes = {}
-                            key = key.strip()
+                            this_declaration = {}
+                            property = property.strip()
                             value = value.strip()
-                            attributes[key] = value
-                            fontface_rules.append(attributes)
+                            this_declaration[property] = value
+                            fontface_rules.append(this_declaration)
 
                     if rule.type == media_type:
-                        this_declaration = {}
-                        # remove beginning of rule (declaration) from rule string
-                        declaration, rule_text = rule_text.split('{', 1)
+                        this_rule = {}
 
-                        k, v = declaration.split(' ', 1)
-                        k, v = k.strip(), v.strip()
+                        # remove @media from the rest of the definition
+                        rule_declaration = rule_definition.split(' ', 1)[1]
+                        rule_declaration = rule_declaration.strip()
 
-                        this_declaration[k] = v
-                        media_rules.append(this_declaration)
+                        selector = ''
+                        selectors = []
+                        media_elements = rule_text.split('{')
 
+                        for element in media_elements:
+                            selector_dictionary = {}
 
+                            if not '}' in element:
+                                # it must be a selector!
+                                selector = element.strip()
+                                continue
 
-        # Put results in a list
+                            # remove next selector, leaving declarations
+                            declarations, leftover = element.split('}', 1)
+                            declarations = declarations.strip()
+
+                            selector_declarations = []
+                            for property, value in [x.split(':') for x in declarations.split(';')
+                                           if len(x.split(':')) == 2]:
+                                this_declaration = {}
+                                property, value = property.strip(), value.strip()
+                                this_declaration[property] = value
+                                selector_declarations.append(this_declaration)
+
+                            selector_dictionary[selector] = selector_declarations
+                            selectors.append(selector_dictionary)
+
+                            # set next selector
+                            selector = leftover.replace('}', '').strip()
+
+                        this_rule[rule_declaration] = selectors
+                        media_rules.append(this_rule)
+
+        # create results list of tags and rules
         tags = style, script, button, type_button, media_rules, fontface_rules
 
-        # Detect tags, adding boolean value for each tag (key) to detected list
+        # Detect tags, adding boolean value for each tag to detected list
+        # If style rules True, add list of declarations
         detected_count = 0
         for tag in tags:
             this_name = detected_names[detected_count]
             if len(tag) >= 1:
-                #print this_name
                 if this_name == '@media':
                     detected[this_name] = media_rules
                     detected_count += 1
@@ -572,8 +575,8 @@ class Premailer(object):
         for key in sorted(detected):
             format_detected += "   %s: %s \n" % (key, detected[key])
 
-        return detected
-        # return format_detected
+        # return detected
+        return format_detected
 
 
 def transform(html, base_url=None):
@@ -597,13 +600,16 @@ if __name__ == '__main__':
             body {
                 background-color: lightblue;
             }
+            head {
+                background-color: purple;
+            }
         }
         p.footer { font-size: 1px}
         </style>
         <style>
         @media screen and (max-width: 700px) {
             body {
-                background-color: lightblue;
+                background-color: blue;
             }
         }
         @font-face {
