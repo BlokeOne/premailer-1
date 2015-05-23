@@ -1,70 +1,530 @@
 import unittest
 
+from premailer import Premailer, etree
 
 class MyTestCase(unittest.TestCase):
     ### This section of unit tests is for @media queries ###
     def test_standard_media_query(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media screen {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
 
-    def test_media_query_with_screen(self):
-        self.assertEqual(True, True)
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+                                    {u'body': [{u'background-color': u'lightblue'}]},
+                                    {u'head': [{u'background-color': u'purple'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_media_query_with_print(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media print {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'print': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+                                    {u'body': [{u'background-color': u'lightblue'}]},
+                                    {u'head': [{u'background-color': u'purple'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_media_query_with_max_width(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media only screen and (max-width: 680px) {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
 
-    def test_media_query_with_min_width(self):
-        self.assertEqual(True, True)
-
-    def test_media_query_with_projection(self):
-        self.assertEqual(True, True)
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'only screen and (max-width: 680px)': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+                                    {u'body': [{u'background-color': u'lightblue'}]},
+                                    {u'head': [{u'background-color': u'purple'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_multiple_media_queries_in_one_style_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media screen, projection {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                max-width: 35em;
+                margin: 0 auto;
+            }
+        }
+
+        @media print {
+            html {
+                background: #fff;
+                color: #000;
+            }
+            body {
+                padding: 1in;
+                border: 0.5pt solid #666;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'screen, projection': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+            {u'body': [{u'max-width': u'35em'}, {u'margin': u'0 auto'}]}]},
+            {u'print': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
+            {u'body': [{u'padding': u'1in'}, {u'border': u'0.5pt solid #666'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_multiple_media_queries_in_two_style_tags(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media screen {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        <style>
+        @media screen, projection {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                max-width: 35em;
+                margin: 0 auto;
+            }
+        }
 
-    def test_blank_media_query(self):
-        self.assertEqual(True, True)
+        @media print {
+            html {
+                background: #fff;
+                color: #000;
+            }
+            body {
+                padding: 1in;
+                border: 0.5pt solid #666;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+            {u'body': [{u'background-color': u'lightblue'}]}, {u'head': [{u'background-color': u'purple'}]}]},
+            {u'screen, projection': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+            {u'body': [{u'max-width': u'35em'}, {u'margin': u'0 auto'}]}]},
+            {u'print': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
+            {u'body': [{u'padding': u'1in'}, {u'border': u'0.5pt solid #666'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_invalid_media_selector(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media screen {
+            monkey {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
 
-    def test_nested_media_query(self):
-        self.assertEqual(True, True)
+        p = Premailer(html)
+        expected = {
+            '@media': [{u'screen': [{u'monkey': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
+                                    {u'body': [{u'background-color': u'lightblue'}]},
+                                    {u'head': [{u'background-color': u'purple'}]}]}]
+        }
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     ### This section of unit tests is for @Font-Face ###
     def test_standard_font_face(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @font-face {
+            font-family: myFirstFont;
+            src: url(sansation_bold.woff);
+            font-weight: bold;
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'@font-face': [{u'font-family': u'myfirstfont'},
+                    {u'src': u'url(sansation_bold.woff)'}, {u'font-weight': u'bold'}]}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_multiple_font_face_in_one_style_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @font-face {
+            font-family: myFirstFont;
+            src: url(sansation_bold.woff);
+            font-weight: bold;
+        }
+        @font-face {
+            font-family: mySecondFont;
+            src: url(sansation_italic.woff);
+            font-style: italic;
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'@font-face': [{u'font-family': u'myfirstfont'},
+                    {u'src': u'url(sansation_bold.woff)'}, {u'font-weight': u'bold'},
+                    {u'font-family': u'mysecondfont'},
+                    {u'src': u'url(sansation_italic.woff)'}, {u'font-style': u'italic'}]}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_multiple_font_face_in_two_style_tags(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @font-face {
+            font-family: myFirstFont;
+            src: url(sansation_bold.woff);
+            font-weight: bold;
+        }
+        @font-face {
+            font-family: mySecondFont;
+            src: url(sansation_italic.woff);
+            font-style: italic;
+        }
+        </style>
+        <style>
+        @font-face {
+            font-family: myThirdFont;
+            src: url(sansation_normal.woff);
+            font-weight: normal;
+        }
+        @font-face {
+            font-family: myFourthFont;
+            src: url(sansation_oblique.woff);
+            font-style: oblique;
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'@font-face': [{u'font-family': u'myfirstfont'},
+                    {u'src': u'url(sansation_bold.woff)'}, {u'font-weight': u'bold'},
+                    {u'font-family': u'mysecondfont'},
+                    {u'src': u'url(sansation_italic.woff)'}, {u'font-style': u'italic'},
+                    {u'font-family': u'mythirdfont'},
+                    {u'src': u'url(sansation_normal.woff)'}, {u'font-weight': u'normal'},
+                    {u'font-family': u'myfourthfont'},
+                    {u'src': u'url(sansation_oblique.woff)'}, {u'font-style': u'oblique'}]}
+
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_invalid_font_face_property_name(self):
-        self.assertEqual(True, True)
+        # raising warning for Unknown Property name
+        # font-famil
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @font-face {
+            font-famil: myFirstFont;
+            src: url(sansation_bold.woff);
+            font-weight: bold;
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
 
-    ### This section of unit tests is for HTML elements ###
+        p = Premailer(html)
+        expected = {'@font-face': [{u'font-famil': u'myfirstfont'},
+                    {u'src': u'url(sansation_bold.woff)'}, {u'font-weight': u'bold'}]}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
+
+    ### This section of unit tests is for HTML element detection ###
     def test_standard_button_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+
+        <button>Click Me!</button>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'button-element': True}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_input_button_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <input type="button" value="Clicky!"/>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'button-attribute': True}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_script_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <script></script>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'script': True}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     def test_style_tag(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        strong {
+          text-decoration:none
+          }
+        p { font-size:2px;
+            width: 400px;
+            }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'style': True}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
+
+    def test_false_cases(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'style': False, 'script': False, 'button-element': False,
+                    'button-attribute': False, '@media': False, '@font-face': False}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
     ### This sectiion of unit tests is for miscellaneous scenarios ###
     def test_multiple_new_lines_in_css_rule(self):
-        self.assertEqual(True, True)
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+
+
+
+        @font-face {
+
+
+
+            font-family: myFirstFont;
+
+            src: url(sansation_bold.woff);
+
+
+
+
+            font-weight: bold;
+
+        }
+
+
+
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        p = Premailer(html)
+        expected = {'style': True, '@font-face': [{u'font-family': u'myfirstfont'},
+                    {u'src': u'url(sansation_bold.woff)'}, {u'font-weight': u'bold'}]}
+        actual = p.detect_tags(html)
+        self.assertDictContainsSubset(expected, actual)
 
 if __name__ == '__main__':
     unittest.main()

@@ -463,7 +463,7 @@ class Premailer(object):
         tree = etree.fromstring(html.lower())
         # Make a Dictionary of detected tags
         detected = {}
-        # List of keys to match boolean value
+        # List of keys
         #   Button-Element = <button></button>
         #   Button-Attribute = <input type="button" />
         detected_names = "style", "script", "button-element", "button-attribute", "@media", "@font-face"
@@ -575,8 +575,8 @@ class Premailer(object):
         for key in sorted(detected):
             format_detected += "   %s: %s \n" % (key, detected[key])
 
-        # return detected
-        return format_detected
+        return detected
+        # return format_detected
 
 
 def transform(html, base_url=None):
@@ -607,15 +607,36 @@ if __name__ == '__main__':
         p.footer { font-size: 1px}
         </style>
         <style>
-        @media screen and (max-width: 700px) {
+        @media screen, projection {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
             body {
-                background-color: blue;
+                max-width: 35em;
+                margin: 0 auto;
+            }
+        }
+
+        @media print {
+            html {
+                background: #fff;
+                color: #000;
+            }
+            body {
+                padding: 1in;
+                border: 0.5pt solid #666;
             }
         }
         @font-face {
             font-family: myFirstFont;
             src: url(sansation_bold.woff);
             font-weight: bold;
+        }
+        @font-face {
+            font-family: mySecondFont;
+            src: url(sansation_italic.woff);
+            font-style: italic;
         }
         .testClass {
             font-family: 'Arial';
@@ -624,7 +645,7 @@ if __name__ == '__main__':
         strong {
           text-decoration:none
           }
-        p { font-size:2px;
+        poodle { font-size:2px;
             width: 400px;
             }
 
@@ -634,7 +655,6 @@ if __name__ == '__main__':
         <h1>Hi!</h1>
         <p><strong>Yes!</strong></p>
         <p class="footer" style="color:red">Feetnuts</p>
-
         <input type="button" />
         </body>
         </html>"""
