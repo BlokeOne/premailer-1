@@ -90,6 +90,11 @@ def main(args):
         action="store_true", dest="disable_validation",
         help="Disable CSSParser validation of attributes and values",
     )
+    parser.add_argument(
+        "---metadata", default=False,
+        action="store_true", dest="metadata",
+        help="Enable collection of metadata"
+    )
 
     options = parser.parse_args(args)
 
@@ -109,7 +114,8 @@ def main(args):
         method=options.method,
         base_path=options.base_path,
         disable_basic_attributes=options.disable_basic_attributes,
-        disable_validation=options.disable_validation
+        disable_validation=options.disable_validation,
+        metadata=options.metadata
     )
     options.outfile.write(p.transform())
     return 0

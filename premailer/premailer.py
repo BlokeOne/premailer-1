@@ -12,9 +12,8 @@ import os
 import re
 import urllib2
 import urlparse
-import sys
 import logging
-
+import pprint
 import cssutils
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -24,8 +23,17 @@ __all__ = ['PremailerError', 'Premailer', 'transform']
 
 
 class PremailerError(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+        Exception.__init__(self, message)
 
+class XMLSyntaxError(PremailerError):
+    def __init__(self, message):
+        super(PremailerError, self).__init__(message)
+
+class CSS_SyntaxError(PremailerError):
+    def __init__(self, message):
+        super(PremailerError, self).__init__(message)
 
 grouping_regex = re.compile('([:\-\w]*){([^}]+)}')
 
@@ -154,10 +162,6 @@ class Premailer(object):
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
         self.metadata = metadata
-        # if metadata == True:
-        #     #self.metadata = self.detect_tags(html)
-        #     print self.detect_tags(html)
-        #     raise SystemExit
 
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
@@ -167,8 +171,15 @@ class Premailer(object):
         # empty string
         if not css_body:
             return rules, leftover
+        mylog = StringIO.StringIO()
+        h = logging.StreamHandler(mylog)
+        h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
+        cssutils.log.addHandler(h)
+        cssutils.log.setLevel(logging.INFO)
         sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
         assert sheet
+        if mylog.getvalue():
+            raise CSS_SyntaxError(mylog.getvalue())
         for rule in sheet:
             # handle media rule
             if rule.type == rule.MEDIA_RULE:
@@ -215,15 +226,13 @@ class Premailer(object):
         """change the self.html and return it with CSS turned into style
         attributes.
         """
-        is_error_free = True
         if etree is None:
             return self.html
 
         try:
             etree.fromstring(self.html)
         except etree.XMLSyntaxError as e:
-            is_error_free = False
-            print "SyntaxError:", e
+            raise XMLSyntaxError(e)
             # for i in range(len(sys.exc_info())):
             #     print sys.exc_info()[i]
             # print sys.exc_type, " ", sys.exc_value
@@ -293,14 +302,15 @@ class Premailer(object):
                         lines.append('%s {%s}' % (k, make_important(v)))
                     # media rule
                     else:
-                        if item.type == 5:
+                        FONT_FACE_RULE = 5
+                        if item.type == FONT_FACE_RULE:
                             if self.metadata != True:
                                 continue
-                            if isinstance(rule, cssutils.css.csscomment.CSSComment):
+                            if isinstance(item, cssutils.css.csscomment.CSSComment):
                                 continue
-                            for key in rule.style.keys():
-                                rule.style[key] = (
-                                    rule.style.getPropertyValue(key, False),
+                            for key in item.style.keys():
+                                item.style[key] = (
+                                    item.style.getPropertyValue(key, False),
                                     '!important'
                                 )
                             lines.append(item.cssText)
@@ -407,9 +417,7 @@ class Premailer(object):
 
         ### collect metadata instead ###
         if self.metadata:
-            #if is_error_free == True:
-            return self.detect_tags(out)
-            #raise PremailerError("Could not collect accurate metadata due to errors detected")
+            return out, self._detect_tags(out)
         ################################
 
         return out
@@ -493,7 +501,7 @@ class Premailer(object):
                 continue
             element.attrib[key] = value
 
-    def detect_tags(self, tree):
+    def _detect_tags(self, tree):
         """find tags within html and return True or False for each tag
         add declarations instead of True for rules within the style tag
         """
@@ -508,7 +516,7 @@ class Premailer(object):
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
         else:
             parser = etree.HTMLParser()
-        stripped = self.html.strip()
+        stripped = self.html.strip().lower()
         tree = etree.fromstring(stripped, parser).getroottree()
 
         # tree = etree.fromstring(html.lower())
@@ -555,15 +563,15 @@ class Premailer(object):
                     rule_definition.strip()
 
                     if rule.type == fontface_type:
+                        this_rule = {}
                         rule_text = rule_text.replace('}', '')
 
                         for property, value in [x.split(':') for x in rule_text.split(';')
                                            if len(x.split(':')) == 2]:
-                            this_declaration = {}
                             property = property.strip()
                             value = value.strip()
-                            this_declaration[property] = value
-                            fontface_rules.append(this_declaration)
+                            this_rule[property] = value
+                        fontface_rules.append(this_rule)
 
                     if rule.type == media_type:
                         this_rule = {}
@@ -633,15 +641,7 @@ class Premailer(object):
                 detected[this_name] = False
             detected_count += 1
 
-
-        # output formatted dictionary values (detected)
-        format_detected = ""
-        for key in sorted(detected):
-            format_detected += "   %s: %s \n" % (key, detected[key])
-
         return detected
-        # return format_detected
-
 
 
 def transform(html, base_url=None):
@@ -655,7 +655,7 @@ def transform(html, base_url=None):
 if __name__ == '__main__':
     html = u"""<html>
         <head>
-        title>Test</title>
+        <title>Test</title>
         <style>
         @media screen {
             html {
@@ -663,7 +663,7 @@ if __name__ == '__main__':
                 color: #300;
             }
             body {
-                background-color: ightblue;
+                background-color: lightblue;
             }
             head {
                 background-color: purple;
@@ -734,8 +734,14 @@ if __name__ == '__main__':
         </body>
         </html>"""
     p = Premailer(html)
-    print transform(html)
-    # print p.detect_tags(html)
+    pp = pprint.PrettyPrinter(indent=2)
+    t = transform(html)
+    print "*** HTML with Inlined CSS ***\n"
+    print t[0]
+    print "*** CSS Metadata ***\n"
+    print pp.pprint(t[1])
+    # print transform(html)
+    # print p._detect_tags(html)
 
 
 
