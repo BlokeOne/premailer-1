@@ -348,6 +348,8 @@ class MyTestCase(unittest.TestCase):
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
+    # REMOVE THE FOLLOWING TEST?  RAISES ERROR
+
     # def test_invalid_font_face_property_name(self):
     #     # raising warning for Unknown Property name
     #     # font-famil

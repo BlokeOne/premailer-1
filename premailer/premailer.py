@@ -17,6 +17,7 @@ import pprint
 import cssutils
 from lxml import etree
 from lxml.cssselect import CSSSelector
+from lxml.html.clean import Cleaner
 
 
 __all__ = ['PremailerError', 'Premailer', 'transform']
@@ -32,6 +33,10 @@ class XMLSyntaxError(PremailerError):
         super(PremailerError, self).__init__(message)
 
 class CSS_SyntaxError(PremailerError):
+    def __init__(self, message):
+        super(PremailerError, self).__init__(message)
+
+class HTMLElementError(PremailerError):
     def __init__(self, message):
         super(PremailerError, self).__init__(message)
 
@@ -56,8 +61,6 @@ def merge_styles(old, new, class_=''):
     """
 
     def csstext_to_pairs(csstext):
-        # if '!important' in csstext:
-        #     csstext = csstext.replace('!important', '')
         parsed = cssutils.css.CSSVariablesDeclaration(csstext)
         for key in parsed:
             yield (key, parsed.getVariableValue(key))
@@ -162,15 +165,17 @@ class Premailer(object):
         self.disable_basic_attributes = disable_basic_attributes
         self.disable_validation = disable_validation
         self.metadata = metadata
+        self.FONT_FACE_RULE = 5
 
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
         rules = []
         rule_index = 0
-        FONT_FACE_RULE = 5
+
         # empty string
         if not css_body:
             return rules, leftover
+        # get cssutils errors
         mylog = StringIO.StringIO()
         h = logging.StreamHandler(mylog)
         h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
@@ -186,7 +191,7 @@ class Premailer(object):
                 leftover.append(rule)
                 continue
             # handle font-face rule
-            if rule.type == FONT_FACE_RULE and self.metadata == True:
+            if rule.type == self.FONT_FACE_RULE and self.metadata == True:
                 leftover.append(rule)
             # only proceed for things we recognize
             if rule.type != rule.STYLE_RULE:
@@ -233,6 +238,7 @@ class Premailer(object):
             etree.fromstring(self.html)
         except etree.XMLSyntaxError as e:
             raise XMLSyntaxError(e)
+
             # for i in range(len(sys.exc_info())):
             #     print sys.exc_info()[i]
             # print sys.exc_type, " ", sys.exc_value
@@ -240,10 +246,14 @@ class Premailer(object):
         if self.method == 'xml':
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
         else:
-            parser = etree.HTMLParser()
+            parser = etree.HTMLParser(recover=False)
         stripped = self.html.strip().lower()
-        tree = etree.fromstring(stripped, parser).getroottree()
+        try:
+            tree = etree.fromstring(stripped, parser).getroottree()
+        except etree.XMLSyntaxError as e:
+            raise HTMLElementError(e)
         page = tree.getroot()
+
 
         # lxml inserts a doctype if none exists, so only include it in
         # the root if it was in the original html.
@@ -302,8 +312,7 @@ class Premailer(object):
                         lines.append('%s {%s}' % (k, make_important(v)))
                     # media rule
                     else:
-                        FONT_FACE_RULE = 5
-                        if item.type == FONT_FACE_RULE:
+                        if item.type == self.FONT_FACE_RULE:
                             if self.metadata != True:
                                 continue
                             if isinstance(item, cssutils.css.csscomment.CSSComment):
@@ -537,32 +546,24 @@ class Premailer(object):
         # Find specified rules in style tag(s)
         media_rules = []
         fontface_rules = []
-        media_type = 4
-        fontface_type = 5
         # at least one style tag
         if len(style) >= 1:
             for style_index in range(len(style)):
-                # mylog = StringIO.StringIO()
-                # h = logging.StreamHandler(mylog)
-                # h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
-                # cssutils.log.addHandler(h)
-                # cssutils.log.setLevel(logging.INFO)
                 style_sheet = cssutils.parseString(style[style_index].text, validate=False)
-                # if mylog.getvalue():
-                #     raise PremailerError('Errors detected.  Aborting metadata collection.')
 
                 for rule in style_sheet:
-                    if rule.type != fontface_type and rule.type != media_type:
+                    if rule.type != self.FONT_FACE_RULE and rule.type != rule.MEDIA_RULE:
                         continue
 
                     rule_text = rule.cssText
                     #rule_text = rule_text.replace('!important', '')
+
                     # remove beginning of rule (definition) from rule string
                     #   exposing the selectors and their declarations
                     rule_definition, rule_text = rule_text.split('{', 1)
                     rule_definition.strip()
 
-                    if rule.type == fontface_type:
+                    if rule.type == self.FONT_FACE_RULE:
                         this_rule = {}
                         rule_text = rule_text.replace('}', '')
 
@@ -573,7 +574,7 @@ class Premailer(object):
                             this_rule[property] = value
                         fontface_rules.append(this_rule)
 
-                    if rule.type == media_type:
+                    if rule.type == rule.MEDIA_RULE:
                         this_rule = {}
 
                         # remove @media from the rest of the definition
@@ -656,7 +657,7 @@ if __name__ == '__main__':
     html = u"""<html>
         <head>
         <title>Test</title>
-        <style>
+        <styles>
         @media screen {
             html {
                 background: #fffef0;
@@ -668,9 +669,9 @@ if __name__ == '__main__':
             head {
                 background-color: purple;
             }
-        }
+        } /* monkey */
         p.footer { font-size: 1px}
-        </style>
+        </styles>
         <style>
         @media screen, projection {
             html {
@@ -716,7 +717,7 @@ if __name__ == '__main__':
           text-decoration:none
           }
         p { font-size:2px;
-            width: 400px;
+            width: 400px
             }
         body {
             font-family: 'MyWebFont', Fallback, sans-serif;
@@ -735,11 +736,11 @@ if __name__ == '__main__':
         </html>"""
     p = Premailer(html)
     pp = pprint.PrettyPrinter(indent=2)
-    t = transform(html)
+    html, meta = transform(html)
     print "*** HTML with Inlined CSS ***\n"
-    print t[0]
+    print html
     print "*** CSS Metadata ***\n"
-    print pp.pprint(t[1])
+    print pp.pprint(meta)
     # print transform(html)
     # print p._detect_tags(html)
 
