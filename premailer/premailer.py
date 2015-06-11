@@ -580,9 +580,17 @@ class Premailer(object):
                         # remove @media from the rest of the definition
                         rule_declaration = rule_definition.split(' ', 1)[1]
                         rule_declaration = rule_declaration.strip()
-
                         selector = ''
                         selectors = []
+
+                        # find same rule_declaration in list
+                        # put selectors/declarations in same dictionary
+                        for media_rule in media_rules:
+                            for this_rule_declaration in media_rule:
+                                if rule_declaration == this_rule_declaration:
+                                    repeated_rule_declaration = True
+                                    selectors = media_rule[this_rule_declaration]
+                                    media_rules.remove(media_rule)
                         media_elements = rule_text.split('{')
 
                         for element in media_elements:
@@ -657,7 +665,7 @@ if __name__ == '__main__':
     html = u"""<html>
         <head>
         <title>Test</title>
-        <styles>
+        <style>
         @media screen {
             html {
                 background: #fffef0;
@@ -666,12 +674,14 @@ if __name__ == '__main__':
             body {
                 background-color: lightblue;
             }
+        } /* monkey */
+        @media screen {
             head {
                 background-color: purple;
             }
-        } /* monkey */
+        }
         p.footer { font-size: 1px}
-        </styles>
+        </style>
         <style>
         @media screen, projection {
             html {
