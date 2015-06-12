@@ -556,6 +556,8 @@ class Premailer(object):
                         continue
 
                     rule_text = rule.cssText
+                    if not rule_text:
+                        print "put empty media fix here"
                     #rule_text = rule_text.replace('!important', '')
 
                     # remove beginning of rule (definition) from rule string
@@ -576,25 +578,18 @@ class Premailer(object):
 
                     if rule.type == rule.MEDIA_RULE:
                         this_rule = {}
+                        selector = ''
+                        selectors = []
+                        identical_rule_declaration = False
 
                         # remove @media from the rest of the definition
                         rule_declaration = rule_definition.split(' ', 1)[1]
                         rule_declaration = rule_declaration.strip()
-                        selector = ''
-                        selectors = []
 
-                        # find same rule_declaration in list
-                        # put selectors/declarations in same dictionary
-                        for media_rule in media_rules:
-                            for this_rule_declaration in media_rule:
-                                if rule_declaration == this_rule_declaration:
-                                    repeated_rule_declaration = True
-                                    selectors = media_rule[this_rule_declaration]
-                                    media_rules.remove(media_rule)
                         media_elements = rule_text.split('{')
-
                         for element in media_elements:
                             selector_dictionary = {}
+                            identical_selector = False
 
                             if not element:
                                 continue
@@ -617,10 +612,35 @@ class Premailer(object):
                                 declarations.append(this_declaration)
 
                             selector_dictionary[selector] = declarations
-                            selectors.append(selector_dictionary)
+
+                            # find same rule declaration in list
+                            # put selectors/declarations in same dictionary
+                            for media_rule in media_rules:
+                                for old_rule_declaration in media_rule:
+                                    if rule_declaration == old_rule_declaration:
+                                        selectors = media_rule[old_rule_declaration]
+                                        media_rules.remove(media_rule)
+                                        identical_rule_declaration = True
+
+                            # add new declarations to previous list
+                            if identical_rule_declaration == True:
+                                for new_dec in selector_dictionary[selector]:
+                                    for old_selector in selectors:
+                                        if selector in old_selector:
+                                            for property in new_dec:
+                                                for old_dec in old_selector[selector]:
+                                                    if property in old_dec:
+                                                        old_selector[selector].remove(old_dec)
+                                            old_selector[selector].append(new_dec)
+                                            identical_selector = True
 
                             # set next selector
                             selector = leftover.replace('}', '').strip()
+
+                            if identical_selector == True:
+                                continue
+
+                            selectors.append(selector_dictionary)
 
                         this_rule[rule_declaration] = selectors
                         media_rules.append(this_rule)
@@ -694,7 +714,7 @@ if __name__ == '__main__':
             }
         }
 
-        @media print {
+        @media screen {
             html {
                 background: #fff;
                 color: #000;
@@ -746,9 +766,9 @@ if __name__ == '__main__':
         </html>"""
     p = Premailer(html)
     pp = pprint.PrettyPrinter(indent=2)
-    html, meta = transform(html)
+    transformed_html, meta = transform(html)
     print "*** HTML with Inlined CSS ***\n"
-    print html
+    print transformed_html
     print "*** CSS Metadata ***\n"
     print pp.pprint(meta)
     # print transform(html)

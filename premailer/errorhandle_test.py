@@ -206,7 +206,7 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
 
-        with self.assertRaises(XMLSyntaxError):
+        with self.assertRaises(HTMLElementError):
             Premailer(html).transform()
 
     def test_HTML_missing_closing_tag(self):

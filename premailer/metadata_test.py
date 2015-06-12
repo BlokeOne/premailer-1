@@ -215,13 +215,23 @@ class MyTestCase(unittest.TestCase):
         <head>
         <title>Test</title>
         <style>
-        @media screen {
-            monkey {
+        @media screen and (max-width:680px;) {
+            html {
                 background: #fffef0;
                 color: #300;
             }
+        }
+        @media screen and (max-width:680px;) {
             body {
                 background-color: lightblue;
+            }
+        }
+
+        </style>
+        <style>
+        @media screen and (max-width:680px;) {
+            html {
+                color: #400
             }
             head {
                 background-color: purple;
@@ -237,9 +247,11 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'screen': [{u'monkey': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-                                    {u'body': [{u'background-color': u'lightblue'}]},
-                                    {u'head': [{u'background-color': u'purple'}]}]}]
+            '@media': [{u'screen and (max-width: 680px)': [
+                            {u'html': [{u'background': u'#fffef0'}, {u'color': u'#400'}]},
+                            {u'body': [{u'background-color': u'lightblue'}]},
+                            {u'head': [{u'background-color': u'purple'}]}]}
+                                                            ]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
