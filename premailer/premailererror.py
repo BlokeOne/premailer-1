@@ -10,66 +10,78 @@ class XMLSyntaxError(PremailerError):
         super(PremailerError, self).__init__(message)
 
 class CSS_SyntaxError(PremailerError):
-    def __init__(self, message):
-        # ERROR: "background-color: lighblue;"
-        # Should be: "ERROR Property: Invalid value for property: background-color: lighblue  - Line: 8, Column: 17"
-        super(PremailerError, self).__init__(message)
-        if message.startswith("ERROR Property: Invalid"):
-            message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
-            msg1, junk, msg2 = message.split('"', 2)
-            msg2, msg3 = msg2.split(':', 1)
-            line, column, propertyvalue = info.split(":", 2)
-            message = "{0} {1} : {2} : {3} - Line: {4} Column: {5}".format(msg1, msg2.strip(), propertyvalue,
-                                                                            msg3.strip(), line, column)
+    try:
+        def __init__(self, message):
+            # ERROR: "background-color: lighblue;"
+            # Should be: "ERROR Property: Invalid value for property: background-color: lighblue  - Line: 8, Column: 17"
+            super(PremailerError, self).__init__(message)
+            if message.startswith("ERROR Property: Invalid"):
+                message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
+                msg1, junk, msg2 = message.split('"', 2)
+                msg2, msg3 = msg2.split(':', 1)
+                line, column, propertyvalue = info.split(":", 2)
+                message = "{0} {1} : {2} : {3} - Line: {4} Column: {5}".format(msg1, msg2.strip(), propertyvalue,
+                                                                                msg3.strip(), line, column)
 
-        # ERROR: "background #fffef0;"
-        # Should be: "ERROR Property: No ":" after name found: background-color lightblue - Line: 8, Column: 34"
-        elif message.startswith("ERROR Property: No"):
-            # print message
-            message, info = message.split('found:', 1)
+            # ERROR: "background #fffef0;"
+            # Should be: "ERROR Property: No ":" after name found: background-color lightblue - Line: 8, Column: 34"
+            elif message.startswith("ERROR Property: No"):
+                # print message
+                message, info = message.split('found:', 1)
 
-            propertyvalue, restofmsg = info.split('[', 1)
-            line, column, left = restofmsg.split(':', 2)
-            message = "{0} found: {1} - Line {2} Column: {3}".format(message, propertyvalue.strip(), line, column)
+                propertyvalue, restofmsg = info.split('[', 1)
+                line, column, left = restofmsg.split(':', 2)
+                message = "{0} found: {1} - Line {2} Column: {3}".format(message, propertyvalue.strip(), line, column)
 
-        # ERROR: "background: #ffef0;"
-        # Should be: "ERROR PropertyValue: Syntax Error in Property: background: #ffef0 - Line: 4, Column: 29"
-        elif message.startswith("ERROR PropertyValue:"):
-            # print message
-            left, propertytype, value = message.rsplit(':', 2)
-            propertyvalue = propertytype + ": " + value.strip()
-            left, errorlocation = left.rsplit(':', 1)
-            errortype, restofmsg = message.split(':', 1)
-            left, restofmsg = restofmsg.split('\'HASH\'', 1)
-            left, restofmsg = restofmsg.split('\'', 1)
-            left, restofmsg = restofmsg.split(',', 1)
-            line, restofmsg = restofmsg.split(',', 1)
-            column, restofmsg = restofmsg.split(')', 1)
-            message = "{0} :{1} : {2} - Line: {3}, Column: {4}".format(errortype, errorlocation, propertyvalue,
-                                                                               line, column)
-        # Test case
-        elif message.startswith("ERROR COLOR_VALUE:"):
-            message, left = message.split(":", 1)
-            info = left.split("'HASH', ", 1)[1]
-            info = info.split("'", 1)[1]
-            value, numbersandstuff = info.rsplit("'", 1)
-            numbers = numbersandstuff.split(")", 1)[0].replace(",", "").strip()
-            value = ": (" + value + ") "
-            line, column = numbers.split(" ", 1)
-            line = "Line " + line + ", "
-            column = "Column " + column
-            message = "{0} {1} {2} {3}".format(message, value, line, column)
+            # ERROR: "background: #ffef0;"
+            # Should be: "ERROR PropertyValue: Syntax Error in Property: background: #ffef0 - Line: 4, Column: 29"
+            elif message.startswith("ERROR PropertyValue:"):
+                # print message
+                left, propertytype, value = message.rsplit(':', 2)
+                propertyvalue = propertytype + ": " + value.strip()
+                left, errorlocation = left.rsplit(':', 1)
+                errortype, restofmsg = message.split(':', 1)
+                left, restofmsg = restofmsg.split('\'HASH\'', 1)
+                left, restofmsg = restofmsg.split('\'', 1)
+                left, restofmsg = restofmsg.split(',', 1)
+                line, restofmsg = restofmsg.split(',', 1)
+                column, restofmsg = restofmsg.split(')', 1)
+                message = "{0} :{1} : {2} - Line: {3}, Column: {4}".format(errortype, errorlocation, propertyvalue,
+                                                                                   line, column)
+            # Test case
+            # elif message.startswith("ERROR COLOR_VALUE:"):
+            #     message, left = message.split(":", 1)
+            #     info = left.split("'HASH', ", 1)[1]
+            #     info = info.split("'", 1)[1]
+            #     value, numbersandstuff = info.rsplit("'", 1)
+            #     numbers = numbersandstuff.split(")", 1)[0].replace(",", "").strip()
+            #     value = ": (" + value + ") "
+            #     line, column = numbers.split(" ", 1)
+            #     line = "Line " + line + ", "
+            #     column = "Column " + column
+            #     message = "{0} {1} {2} {3}".format(message, value, line, column)
 
-        # WARNING Messages
-        # WARNING "backgrund: #fffef0;"
-        # Should do: "WARNING Property: Unknown Property name: "backgrund" - Line: 4, Column: 17"
-        elif message.startswith("WARNING Property:"):
-            message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
-            message, junk = message.rsplit('.', 1)
-            line, column, propertyvalue = info.split(":", 2)
-            message = "{0} : {1} - Line: {2}. Column: {3}".format(message, propertyvalue.strip(), line, column)
+            # WARNING Messages
+            # WARNING "backgrund: #fffef0;"
+            # Should do: "WARNING Property: Unknown Property name: "backgrund" - Line: 4, Column: 17"
+            elif message.startswith("WARNING Property:") or \
+                    message.startswith("WARNING CSSStylesheet: Unknown @rule found."):
+                message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
+                message, junk = message.rsplit('.', 1)
+                line, column, propertyvalue = info.split(":", 2)
+                # if propertyvalue.strip() == "@keyframes":
 
-        Exception.__init__(self, message)
+                message = "{0} : {1} - Line: {2}. Column: {3}".format(message, propertyvalue.strip(), line, column)
+
+            # elif message.startswith("WARNING CSSStylesheet: Unknown @rule found."):
+            #     message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
+            #     message, junk = message.rsplit('.', 1)
+            #     line, column, propertyvalue = info.split(":", 2)
+            #     message = "{0} : {1} - Line: {2}. Column: {3}".format(message, propertyvalue.strip(), line, column)
+
+            Exception.__init__(self, message)
+    except:
+        print "hi"
 
 
 class HTMLElementError(PremailerError):  # TODO delete and remove try/except from code

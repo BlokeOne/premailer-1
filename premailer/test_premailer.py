@@ -9,7 +9,7 @@ from nose.tools import eq_, ok_
 import mock
 
 from premailer import Premailer, etree, merge_styles
-from .__main__ import main
+# from .__main__ import main
 
 
 whitespace_between_tags = re.compile('>\s*<')
@@ -38,7 +38,6 @@ def provide_input(content):
         sys.stdin = StringIO(content)
 
 
-
 class MockResponse:
 
     def __init__(self, content, gzip=False):
@@ -51,6 +50,7 @@ class MockResponse:
             return {'Content-Encoding': 'gzip'}
         else:
             return {}
+
     def read(self):
         if self.gzip:
             out = StringIO()
@@ -59,6 +59,7 @@ class MockResponse:
             return out.getvalue()
         else:
             return self.content
+
 
 def compare_html(one, two):
     one = one.strip()
@@ -77,6 +78,7 @@ def compare_html(one, two):
         other = two.splitlines()[i]
         if line.lstrip() != other.lstrip():
             eq_(line.lstrip(), other.lstrip())
+
 
 class Tests(unittest.TestCase):
 
@@ -124,7 +126,7 @@ class Tests(unittest.TestCase):
         )
         result = merge_styles(old, new)
         for each in expect:
-           ok_(each in result)
+            ok_(each in result)
 
     def test_basic_html(self):
         """test the simplest case"""
@@ -263,7 +265,7 @@ class Tests(unittest.TestCase):
         strong {
             text-decoration:none
             }
-        ul li {  list-style: 2px; }
+        ul li {  list-style: none; }
         a:hover { text-decoration: underline }
         """, 0)
 
@@ -283,20 +285,20 @@ class Tests(unittest.TestCase):
         eq_(rules_dict['h1'], 'color:red')
         eq_(rules_dict['h2'], 'color:red')
         eq_(rules_dict['strong'], 'text-decoration:none')
-        eq_(rules_dict['ul li'], 'list-style:2px')
+        eq_(rules_dict['ul li'], 'list-style:none')
         ok_('a:hover' not in rules_dict)
 
         p = Premailer('html', exclude_pseudoclasses=True)  # won't need the html
         func = p._parse_style_rules
         rules, leftover = func("""
-        ul li {  list-style: 2px; }
+        ul li {  list-style: none; }
         a:hover { text-decoration: underline }
         """, 0)
 
         eq_(len(rules), 1)
         specificity, k, v = rules[0]
         eq_(k, 'ul li')
-        eq_(v, 'list-style:2px')
+        eq_(v, 'list-style:none')
 
         eq_(len(leftover), 1)
         k, v = leftover[0]
@@ -307,7 +309,7 @@ class Tests(unittest.TestCase):
         rules, leftover = p._parse_style_rules("""
         #identified { color:blue; }
         h1, h2 { color:red; }
-        ul li {  list-style: 2px; }
+        ul li {  list-style: none; }
         li.example { color:green; }
         strong { text-decoration:none }
         div li.example p.sample { color:black; }
@@ -1297,7 +1299,6 @@ class Tests(unittest.TestCase):
             '* {line-height: normal !important; -webkit-text-size-adjust: 125%}\n'
             '</style>' in result_html)
 
-
     def test_multithreading(self):
         """The test tests thread safety of merge_styles function which employs
         thread non-safe cssutils calls.
@@ -1311,6 +1312,7 @@ class Tests(unittest.TestCase):
         class RepeatMergeStylesThread(threading.Thread):
             """The thread is instantiated by test and run multiple times in parallel."""
             exc = None
+
             def __init__(self, old, new, class_):
                 """The constructor just stores merge_styles parameters"""
                 super(RepeatMergeStylesThread, self).__init__()
@@ -1379,7 +1381,7 @@ class Tests(unittest.TestCase):
         </html>"""
 
         p = Premailer(html,
-            strip_important=False)
+                    strip_important=False)
         result_html = p.transform()
 
         compare_html(expect_html, result_html)
@@ -1409,9 +1411,9 @@ class Tests(unittest.TestCase):
         </html>"""
 
         p = Premailer(html,
-            strip_important=False,
-            external_styles=['test-external-styles.css'],
-            base_path='premailer/')
+                    strip_important=False,
+                    external_styles=['test-external-styles.css'],
+                    base_path='premailer/')
         result_html = p.transform()
 
         compare_html(expect_html, result_html)
@@ -1557,7 +1559,6 @@ class Tests(unittest.TestCase):
         result_html = p.transform()
         ok_('/* comment */' in result_html)
 
-
     def test_fontface_selectors_with_no_selectortext(self):
         """
         @font-face selectors are weird.
@@ -1585,7 +1586,6 @@ class Tests(unittest.TestCase):
 
         p = Premailer(html, disable_validation=True)
         p.transform()  # it should just work
-
 
     def test_keyframe_selectors(self):
         """

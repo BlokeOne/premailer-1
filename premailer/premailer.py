@@ -17,28 +17,10 @@ import pprint
 import cssutils
 from lxml import etree
 from lxml.cssselect import CSSSelector
-from lxml.html.clean import Cleaner
-
+from premailererror import *
 
 __all__ = ['PremailerError', 'Premailer', 'transform']
 
-
-class PremailerError(Exception):
-    def __init__(self, message):
-        self.message = message
-        Exception.__init__(self, message)
-
-class XMLSyntaxError(PremailerError):
-    def __init__(self, message):
-        super(PremailerError, self).__init__(message)
-
-class CSS_SyntaxError(PremailerError):
-    def __init__(self, message):
-        super(PremailerError, self).__init__(message)
-
-class HTMLElementError(PremailerError):
-    def __init__(self, message):
-        super(PremailerError, self).__init__(message)
 
 grouping_regex = re.compile('([:\-\w]*){([^}]+)}')
 
@@ -142,8 +124,8 @@ class Premailer(object):
                  base_path=None,
                  disable_basic_attributes=None,
                  disable_validation=False,
-                 metadata=False
-    ):
+                 metadata=False,
+                 disable_exceptions=False):
         self.html = html
         self.base_url = base_url
         self.preserve_internal_links = preserve_internal_links
@@ -166,6 +148,7 @@ class Premailer(object):
         self.disable_validation = disable_validation
         self.metadata = metadata
         self.FONT_FACE_RULE = 5
+        self.disable_exceptions = disable_exceptions
 
     def _parse_style_rules(self, css_body, ruleset_index):
         leftover = []
@@ -180,9 +163,12 @@ class Premailer(object):
         h = logging.StreamHandler(mylog)
         h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         cssutils.log.addHandler(h)
-        cssutils.log.setLevel(logging.INFO)
+        cssutils.log.setLevel(logging.INFO) # INFO, ERROR, WARNING,ETC
+        # cssutils.CSSParser(loglevel=logging.INFO)
+        # if not self.disable_validation:
         sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
         assert sheet
+        #print sheet.cssText
         if mylog.getvalue():
             raise CSS_SyntaxError(mylog.getvalue())
         for rule in sheet:
@@ -234,10 +220,10 @@ class Premailer(object):
         if etree is None:
             return self.html
 
-        try:
-            etree.fromstring(self.html)
-        except etree.XMLSyntaxError as e:
-            raise XMLSyntaxError(e)
+        # try:
+        #     etree.fromstring(self.html)
+        # except etree.XMLSyntaxError as e:
+        #     raise XMLSyntaxError(e)
 
             # for i in range(len(sys.exc_info())):
             #     print sys.exc_info()[i]
@@ -247,7 +233,7 @@ class Premailer(object):
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
         else:
             parser = etree.HTMLParser(recover=False)
-        stripped = self.html.strip().lower()
+        stripped = self.html.strip()
         try:
             tree = etree.fromstring(stripped, parser).getroottree()
         except etree.XMLSyntaxError as e:
@@ -525,7 +511,7 @@ class Premailer(object):
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
         else:
             parser = etree.HTMLParser()
-        stripped = self.html.strip().lower()
+        stripped = self.html.strip()
         tree = etree.fromstring(stripped, parser).getroottree()
 
         # tree = etree.fromstring(html.lower())
@@ -557,11 +543,11 @@ class Premailer(object):
 
                     rule_text = rule.cssText
                     if not rule_text:
-                        print "put empty media fix here"
-                    #rule_text = rule_text.replace('!important', '')
+                        if rule.type == rule.MEDIA_RULE:
+                           raise CSS_SyntaxError("You have an empty @media Rule!")
+                        if rule.type == self.FONT_FACE_RULE:
+                            raise CSS_SyntaxError("You have an empty @font-face Rule!")
 
-                    # remove beginning of rule (definition) from rule string
-                    #   exposing the selectors and their declarations
                     rule_definition, rule_text = rule_text.split('{', 1)
                     rule_definition.strip()
 
@@ -594,7 +580,7 @@ class Premailer(object):
                             if not element:
                                 continue
 
-                            if not '}' in element:
+                            if '}' not in element:
                                 # it must be a selector!
                                 selector = element.strip()
                                 continue
@@ -605,7 +591,7 @@ class Premailer(object):
 
                             declarations = []
                             for property, value in [x.split(':') for x in declaration_text.split(';')
-                                           if len(x.split(':')) == 2]:
+                                                if len(x.split(':')) == 2]:
                                 this_declaration = {}
                                 property, value = property.strip(), value.strip()
                                 this_declaration[property] = value
@@ -623,7 +609,7 @@ class Premailer(object):
                                         identical_rule_declaration = True
 
                             # add new declarations to previous list
-                            if identical_rule_declaration == True:
+                            if identical_rule_declaration:
                                 for new_dec in selector_dictionary[selector]:
                                     for old_selector in selectors:
                                         if selector in old_selector:
@@ -636,8 +622,8 @@ class Premailer(object):
 
                             # set next selector
                             selector = leftover.replace('}', '').strip()
-
-                            if identical_selector == True:
+                            # replaced old so don't append
+                            if identical_selector:
                                 continue
 
                             selectors.append(selector_dictionary)
@@ -679,13 +665,12 @@ def transform(html, base_url=None):
                      strip_important=False,
                      metadata=True).transform()
 
-
-
 if __name__ == '__main__':
     html = u"""<html>
         <head>
         <title>Test</title>
         <style>
+        @import url(http://fonts.googleapis.com/css?family=Slabo+27px);
         @media screen {
             html {
                 background: #fffef0;
@@ -703,16 +688,7 @@ if __name__ == '__main__':
         p.footer { font-size: 1px}
         </style>
         <style>
-        @media screen, projection {
-            html {
-                background: #fffef0;
-                color: #300;
-            }
-            body {
-                max-width: 35em;
-                margin: 0 auto;
-            }
-        }
+
 
         @media screen {
             html {
@@ -753,6 +729,7 @@ if __name__ == '__main__':
             font-family: 'MyWebFont', Fallback, sans-serif;
         }
 
+
         </style>
         </head>
         <body>
@@ -773,6 +750,3 @@ if __name__ == '__main__':
     print pp.pprint(meta)
     # print transform(html)
     # print p._detect_tags(html)
-
-
-
