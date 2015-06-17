@@ -19,18 +19,18 @@ class CSS_SyntaxError(PremailerError):
             msg1, junk, msg2 = message.split('"', 2)
             msg2, msg3 = msg2.split(':', 1)
             line, column, propertyvalue = info.split(":", 2)
-            message = msg1 + msg2.strip() + ":" + propertyvalue + ":" + msg3.strip() + " - Line: " + line + ", Column: " \
-                + column
+            message = "{0} {1} : {2} : {3} - Line: {4} Column: {5}".format(msg1, msg2.strip(), propertyvalue,
+                                                                            msg3.strip(), line, column)
 
         # ERROR: "background #fffef0;"
         # Should be: "ERROR Property: No ":" after name found: background-color lightblue - Line: 8, Column: 34"
         elif message.startswith("ERROR Property: No"):
-            print message
+            # print message
             message, info = message.split('found:', 1)
 
             propertyvalue, restofmsg = info.split('[', 1)
             line, column, left = restofmsg.split(':', 2)
-            message = message + "found: " + propertyvalue.strip() + " - Line: " + line + ", Column: " + column
+            message = "{0} found: {1} - Line {2} Column: {3}".format(message, propertyvalue.strip(), line, column)
 
         # ERROR: "background: #ffef0;"
         # Should be: "ERROR PropertyValue: Syntax Error in Property: background: #ffef0 - Line: 4, Column: 29"
@@ -45,8 +45,8 @@ class CSS_SyntaxError(PremailerError):
             left, restofmsg = restofmsg.split(',', 1)
             line, restofmsg = restofmsg.split(',', 1)
             column, restofmsg = restofmsg.split(')', 1)
-            message = errortype + ":" + errorlocation + ":" + propertyvalue + " - Line:" + line + ", Column:" + column
-
+            message = "{0} :{1} : {2} - Line: {3}, Column: {4}".format(errortype, errorlocation, propertyvalue,
+                                                                               line, column)
         # Test case
         elif message.startswith("ERROR COLOR_VALUE:"):
             message, left = message.split(":", 1)
@@ -58,7 +58,7 @@ class CSS_SyntaxError(PremailerError):
             line, column = numbers.split(" ", 1)
             line = "Line " + line + ", "
             column = "Column " + column
-            message = message + value + line + column
+            message = "{0} {1} {2} {3}".format(message, value, line, column)
 
         # WARNING Messages
         # WARNING "backgrund: #fffef0;"
@@ -67,7 +67,7 @@ class CSS_SyntaxError(PremailerError):
             message, info = message.rsplit(']', 1)[0].rsplit('[', 1)
             message, junk = message.rsplit('.', 1)
             line, column, propertyvalue = info.split(":", 2)
-            message = message + ":" + " \"" + propertyvalue.strip() + "\"" + " - Line: " + line + ", Column: " + column
+            message = "{0} : {1} - Line: {2}. Column: {3}".format(message, propertyvalue.strip(), line, column)
 
         Exception.__init__(self, message)
 
