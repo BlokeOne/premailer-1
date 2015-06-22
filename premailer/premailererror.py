@@ -44,19 +44,43 @@ class CSS_SyntaxError(PremailerError):
 
         # ERROR: "background: #ffef0;" TODO explore other options
         # Should be: "ERROR PropertyValue: Syntax Error in Property: background: #ffef0 - Line: 4, Column: 29"
-        # elif message.startswith("ERROR PropertyValue:"):
-        #     # print message
-        #     left, propertytype, value = message.rsplit(':', 2)
-        #     propertyvalue = propertytype + ": " + value.strip()
-        #     left, errorlocation = left.rsplit(':', 1)
-        #     errortype, restofmsg = message.split(':', 1)
-        #     left, restofmsg = restofmsg.split('\'HASH\'', 1)
-        #     left, restofmsg = restofmsg.split('\'', 1)
-        #     left, restofmsg = restofmsg.split(',', 1)
-        #     line, restofmsg = restofmsg.split(',', 1)
-        #     column, restofmsg = restofmsg.split(')', 1)
-        #     message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation, propertyvalue.strip(),
-        #                                                                line, column)
+        elif message.startswith("ERROR PropertyValue:"):
+            try:
+                left, propertytype, value = message.rsplit(':', 2)
+                propertyvalue = propertytype + ": " + value.strip()
+                left, errorlocation = left.rsplit(':', 1)
+                errortype, restofmsg = message.split(':', 1)
+                left, restofmsg = restofmsg.split('\'HASH\'', 1)
+                left, restofmsg = restofmsg.split('\'', 1)
+                left, restofmsg = restofmsg.split(',', 1)
+                line, restofmsg = restofmsg.split(',', 1)
+                column, restofmsg = restofmsg.split(')', 1)
+                message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
+                                                                             propertyvalue.strip(), line, column)
+        # ERROR: "background: ##fffef0;"
+        # Should be: "ERROR PropertyValue : Syntax Error in Property : "background: ##fffef0" - Line: 4, Column: 29"
+            except:
+                try:
+                    # print message
+                    left, propertytype, value = message.rsplit(':', 2)
+                    propertyvalue = propertytype + ": " + value.strip()
+                    left, errorlocation = left.rsplit(':', 1)
+                    errortype, restofmsg = message.split(':', 1)
+                    left, restofmsg = restofmsg.split('\'CHAR\'', 1)
+                    left, restofmsg = restofmsg.split('\'', 1)
+                    left, restofmsg = restofmsg.split(',', 1)
+                    line, restofmsg = restofmsg.split(',', 1)
+                    column, restofmsg = restofmsg.split(')', 1)
+                    message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
+                                                                                 propertyvalue.strip(), line, column)
+                except:
+                    try:
+                        left, message = message.rsplit('-', 1)
+                        message = "We have found an error above:{0}".format(message)
+                    except:
+                        print "Error - Test"
+
+
 
         # ERROR: Gibberish-Before
         # @media screen {
