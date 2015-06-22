@@ -39,7 +39,6 @@ class CSS_SyntaxError(PremailerError):
         # Should be: "ERROR Property: No CSS priority value - Line: 10, Column: 17"
         elif message.startswith("ERROR Property: No CSS priority value: "):
             try:
-                print message
                 message, info, restofmsg = message.split(':', 2)
                 restofmsg, column, left = restofmsg.rsplit(':', 2)
                 left, line = restofmsg.rsplit('[', 1)
@@ -58,11 +57,11 @@ class CSS_SyntaxError(PremailerError):
             except:
                 Exception.__init__(self, message)
 
-        # ERROR: "background ;"
-        # Should be: "ERROR CSSStyleDeclaration: Syntax Error in Property: background-color: "
+        # ERROR: "background: ;"
+        # Should be: "ERROR CSSStyleDeclaration: Syntax Error in Property: background: "
         elif message.startswith("ERROR No content"):
             try:
-                message = message.split(':', 2)[2]
+                message = message.split(':', 2)[2].strip()
             except:
                 Exception.__init__(self, message)
 
@@ -72,7 +71,6 @@ class CSS_SyntaxError(PremailerError):
             try:
                 left, propertytype, value = message.rsplit(':', 2)
                 propertyvalue = propertytype + ": " + value.strip()
-
                 left, errorlocation = left.rsplit(':', 1)
                 errortype, restofmsg = message.split(':', 1)
                 left, restofmsg = restofmsg.split('\'HASH\'', 1)
@@ -99,7 +97,6 @@ class CSS_SyntaxError(PremailerError):
                         Exception.__init__(self, message)
                 else:
                     try:
-                        # print message
                         left, propertytype, value = message.rsplit(':', 2)
                         propertyvalue = propertytype + ": " + value.strip()
                         left, errorlocation = left.rsplit(':', 1)
@@ -109,17 +106,18 @@ class CSS_SyntaxError(PremailerError):
                         left, restofmsg = restofmsg.split(',', 1)
                         line, restofmsg = restofmsg.split(',', 1)
                         column, restofmsg = restofmsg.split(')', 1)
-                        message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
-                                                                                     propertyvalue.strip(), line, column)
+                        message = "{0}:{1}: \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
+                                                                                   propertyvalue.strip(), line, column)
                     except:
                         left, message = message.rsplit('-', 1)
                         message = "We have found an error above:{0}".format(message)
 
+        # ***************************** #
+        # ** @ Media Specific Errors ** #
+        # ***************************** #
 
-
-        # ERROR: Gibberish-Before
-        # @media screen {
-        # Should be: ERROR SelectorList: "@media" Invalid Selector - Line: 5, Column: 9
+        # ERROR: "Gibberish-Before @media screen {"
+        # Should be: "ERROR SelectorList: "@media" Invalid Selector - Line: 5, Column: 9"
         elif message.startswith("ERROR Unexpected token"):
             try:
                 message, info = message.split(')', 1)
@@ -129,25 +127,61 @@ class CSS_SyntaxError(PremailerError):
                 message = "{0}: \"{1}\" {2} - Line:{3}, Column:{4}".format(errortype.strip(), errorrule.strip(),
                                                                            propertyvalue.strip(), line, column)
             except:
-                Exception.__init__(self, message)
+                try:
+                    # ERROR: "@font-face a{"
+                    # Should be: "ERROR Unexpected token : Found: a - Line: 14, Column: 20"
+                    if message.startswith("ERROR Unexpected token (IDENT"):
+                        errortype = message.split('(', 1)[0]
+                        restofmsg, line, column = message.rsplit(',', 2)
+                        identifiererrror = restofmsg.split(', ', 1)[1]
+                        message = "{0}: Found: \"{1}\" - Line:{2}, Column:{3}".format(errortype, identifiererrror, line, column)
+                except:
+                    Exception.__init__(self, message)
 
-        # ERROR: [@media screen {
-        # Should be: ERROR Selector: "@media" Unexpected CHAR. [4 - Line: 4, Column: 10
+        # ERROR: "[@media screen {"
+        # Should be: "ERROR Selector: "@media" Unexpected CHAR. [4 - Line: 4, Column: 10"
         elif "ERROR Unexpected token" in message:
             try:
                 message, info = message.split(')', 1)
                 left, restofmsg = message.split(',', 1)
                 errorrule, line, column = restofmsg.split(',', 2)
                 errortype, propertyvalue, restofmsg = info.split(':', 2)
-                print propertyvalue
                 message = "{0}: \"{1}\" {2} - Line:{3}, Column:{4}".format(errortype.strip(), errorrule.strip(),
                                                                            propertyvalue.strip(), line, column)
+            except:
+                Exception.__init__(self, message)
+
+        # ERROR: "@media screnen {"
+        # Should be: "ERROR MediaQuery: Found: 'screnen' - Line: 2, Column: 16"
+        elif "ERROR MediaQuery" in message:
+            try:
+                errortype, message = message.split(':', 1)
+                message = message.rsplit('ERROR MediaQuery: No match', 1)[0]
+                restofmsg, line, column = message.rsplit(',', 2)
+                column = column.split(')', 1)[0]
+                identifiererrror = restofmsg.split(', u', 1)[1]
+                message = "{0}: Found: {1} - Line:{2}, Column:{3}".format(errortype, identifiererrror, line, column)
+
+            except:
+                Exception.__init__(self, message)
+
+        # ERROR: "@media screen a {"
+        # Should be: "ERROR MediaList: Found: 'a' - Line: 3, Column: 23"
+        elif "ERROR MediaList" in message:
+            try:
+                errortype = message.split(':', 1)[0]
+                restofmsg, line, column = message.rsplit(',', 2)
+                column = column.split(')', 1)[0]
+                identifiererrror = restofmsg.split(', u', 1)[1]
+                message = "{0}: Found: {1} - Line:{2}, Column:{3}".format(errortype, identifiererrror, line, column)
+
             except:
                 Exception.__init__(self, message)
 
         # **************************************************************************#
         # *************************** WARNING Messages *****************************#
         # **************************************************************************#
+
         # WARNING "backgrund: #fffef0;"
         # Should do: "WARNING Property: Unknown Property name: "backgrund" - Line: 4, Column: 17"
         elif message.startswith("WARNING Property:") or \
