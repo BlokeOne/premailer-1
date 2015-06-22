@@ -86,22 +86,34 @@ class CSS_SyntaxError(PremailerError):
         # ERROR: "background: ##fffef0;"
         # Should be: "ERROR PropertyValue : Syntax Error in Property : "background: ##fffef0" - Line: 4, Column: 29"
             except:
-                try:
-                    # print message
-                    left, propertytype, value = message.rsplit(':', 2)
-                    propertyvalue = propertytype + ": " + value.strip()
-                    left, errorlocation = left.rsplit(':', 1)
-                    errortype, restofmsg = message.split(':', 1)
-                    left, restofmsg = restofmsg.split('\'CHAR\'', 1)
-                    left, restofmsg = restofmsg.split('\'', 1)
-                    left, restofmsg = restofmsg.split(',', 1)
-                    line, restofmsg = restofmsg.split(',', 1)
-                    column, restofmsg = restofmsg.split(')', 1)
-                    message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
-                                                                                 propertyvalue.strip(), line, column)
-                except:
-                    left, message = message.rsplit('-', 1)
-                    message = "We have found an error above:{0}".format(message)
+                # ERROR: "background:{ #fffef0;"
+                # Should be: "Found: '{' - Line: 5, Column: 28"
+                if "ERROR CSSMediaRule:" in message:
+                    try:
+                        msg = message.split("'CHAR', u", 1)[1]
+                        junk, problem, msg = msg.split("'", 2)
+                        junk, line, msg = msg.split(",", 2)
+                        column, msg = msg.split(")", 1)
+                        message = "Found: '{0}' - Line:{1}, Column:{2}".format(problem, line, column)
+                    except:
+                        Exception.__init__(self, message)
+                else:
+                    try:
+                        # print message
+                        left, propertytype, value = message.rsplit(':', 2)
+                        propertyvalue = propertytype + ": " + value.strip()
+                        left, errorlocation = left.rsplit(':', 1)
+                        errortype, restofmsg = message.split(':', 1)
+                        left, restofmsg = restofmsg.split('\'CHAR\'', 1)
+                        left, restofmsg = restofmsg.split('\'', 1)
+                        left, restofmsg = restofmsg.split(',', 1)
+                        line, restofmsg = restofmsg.split(',', 1)
+                        column, restofmsg = restofmsg.split(')', 1)
+                        message = "{0} :{1} : \"{2}\" - Line:{3}, Column:{4}".format(errortype, errorlocation,
+                                                                                     propertyvalue.strip(), line, column)
+                    except:
+                        left, message = message.rsplit('-', 1)
+                        message = "We have found an error above:{0}".format(message)
 
 
 
