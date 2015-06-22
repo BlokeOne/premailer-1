@@ -213,51 +213,68 @@ class MyTestCase(unittest.TestCase):
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
-    # def test_invalid_media_selector(self):
-    #     html = u"""<html>
-    #     <head>
-    #     <title>Test</title>
-    #     <style>
-    #     @media screen and (max-width:680px;) {
-    #         html {
-    #             background: #fffef0;
-    #             color: #300;
-    #         }
-    #     }
-    #     @media screen and (max-width:680px;) {
-    #         body {
-    #             background-color: lightblue;
-    #         }
-    #     }
-    #
-    #     </style>
-    #     <style>
-    #     @media screen and (max-width:680px;) {
-    #         html {
-    #             color: #400
-    #         }
-    #         head {
-    #             background-color: purple;
-    #         }
-    #     }
-    #     </style>
-    #     </head>
-    #     <body>
-    #     <h1>Hi!</h1>
-    #     <p><strong>Yes!</strong></p>
-    #     <p class="footer" style="color:red">Feetnuts</p>
-    #     </body>
-    #     </html>"""
-    #
-    #     expected = {
-    #         '@media': [{u'screen and (max-width: 680px)': [
-    #                         {u'html': [{u'background': u'#fffef0'}, {u'color': u'#400'}]},
-    #                         {u'body': [{u'background-color': u'lightblue'}]},
-    #                         {u'head': [{u'background-color': u'purple'}]}]}
-    #                                                         ]
-    #     }
-    #     actual = Premailer(html, metadata=True).transform()
-    #     self.assertDictContainsSubset(expected, actual[1])
+    def test_multiple_media_queries_with_identical_identifier_selectors_and_properties(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @media screen {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                background-color: lightblue;
+            }
+            head {
+                background-color: purple;
+            }
+        }
+        </style>
+        <style>
+        @media screen, projection {
+            html {
+                background: #fffef0;
+                color: #300;
+            }
+            body {
+                max-width: 35em;
+                margin: 0 auto;
+            }
+        }
+
+        @media screen {
+            html {
+                background: #fff;
+                color: #000;
+            }
+            body {
+                padding: 1in;
+                border: 0.5pt solid #666;
+            }
+        }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        expected = {
+            '@media': [{u'screen, projection': [{u'html': [{u'background': u'#fffef0'},
+                                                           {u'color': u'#300'}]},
+                                                {u'body': [{u'max-width': u'35em'},
+                                                           {u'margin': u'0 auto'}]}]},
+                       {u'screen': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
+                                    {u'body': [{u'background-color': u'lightblue'},
+                                               {u'padding': u'1in'},
+                                               {u'border': u'0.5pt solid #666'}]},
+                                    {u'head': [{u'background-color': u'purple'}]}]}]
+        }
+        actual = Premailer(html, metadata=True).transform()
+        self.assertDictContainsSubset(expected, actual[1])
 
     ### This section of unit tests is for @Font-Face ###
     def  test_standard_font_face(self):
@@ -362,34 +379,6 @@ class MyTestCase(unittest.TestCase):
 
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
-
-    # REMOVE THE FOLLOWING TEST?  RAISES ERROR
-
-    # def test_invalid_font_face_property_name(self):
-    #     # raising warning for Unknown Property name
-    #     # font-famil
-    #     html = u"""<html>
-    #     <head>
-    #     <title>Test</title>
-    #     <style>
-    #     @font-face {
-    #         font-famil: myFirstFont;
-    #         src: url(sansation_bold.woff);
-    #         font-weight: bold;
-    #     }
-    #     </style>
-    #     </head>
-    #     <body>
-    #     <h1>Hi!</h1>
-    #     <p><strong>Yes!</strong></p>
-    #     <p class="footer" style="color:red">Feetnuts</p>
-    #     </body>
-    #     </html>"""
-    #
-    #     expected = {'@font-face': [{u'font-famil': u'myfirstfont',
-    #                 u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'}]}
-    #     actual = Premailer(html, metadata=True).transform()
-    #     self.assertDictContainsSubset(expected, actual[1])
 
     ### This section of unit tests is for HTML element detection ###
     def test_standard_button_tag(self):
