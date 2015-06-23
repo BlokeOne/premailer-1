@@ -163,14 +163,14 @@ class Premailer(object):
         h = logging.StreamHandler(mylog)
         h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         cssutils.log.addHandler(h)
-        cssutils.log.setLevel(logging.INFO) # INFO, ERROR, WARNING,ETC
+        if self.disable_exceptions:
+            cssutils.log.setLevel(logging.CRITICAL) # INFO, ERROR, WARNING,ETC
         # cssutils.CSSParser(loglevel=logging.INFO)
-        # if not self.disable_validation:
         sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
         assert sheet
-        #print sheet.cssText
         if mylog.getvalue():
             raise CSS_SyntaxError(mylog.getvalue())
+
         for rule in sheet:
             # handle media rule
             if rule.type == rule.MEDIA_RULE:
@@ -219,15 +219,6 @@ class Premailer(object):
         """
         if etree is None:
             return self.html
-
-        # try:
-        #     etree.fromstring(self.html)
-        # except etree.XMLSyntaxError as e:
-        #     raise XMLSyntaxError(e)
-
-            # for i in range(len(sys.exc_info())):
-            #     print sys.exc_info()[i]
-            # print sys.exc_type, " ", sys.exc_value
 
         if self.method == 'xml':
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
@@ -663,17 +654,19 @@ def transform(html, base_url=None):
     return Premailer(html, keep_style_tags=True,
                      remove_classes=False,
                      strip_important=False,
-                     metadata=True).transform()
+                     metadata=True,
+                     disable_validation=True,
+                     disable_exceptions=True).transform()
 
 if __name__ == '__main__':
     html = u"""<html>
         <head>
         <title>Test</title>
         <style>
-        @import url(http://fonts.googleapis.com/css?family=Slabo+27px);
+        /* @import url(http://fonts.googleapis.com/css?family=Slabo+27px); */
         @media screen {
             html {
-                background: #fffef0;
+                background: #fffef0
                 color: #300;
             }
             body {
