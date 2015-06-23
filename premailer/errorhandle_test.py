@@ -1,5 +1,5 @@
 import unittest
-from premailer import Premailer, CSS_SyntaxError, XMLSyntaxError, HTMLElementError
+from premailer import Premailer, CSS_SyntaxError, HTMLElementError
 
 class MyTestCase(unittest.TestCase):
     ### This section of unit tests is for CSS errors ###
@@ -209,67 +209,12 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaises(HTMLElementError):
             Premailer(html).transform()
 
-    def test_HTML_missing_closing_tag(self):
-        html = u"""<html>
-        <head>
-        <title>Test</title>
-        <style>
-        p { font-size:2px;
-            width: 400px;
-            }
-        h1, h2 { color: red; }
-        strong {
-          text-decoration:none
-          }
-        </style>
-
-        <!-- missing </head> -->
-
-        <body>
-        <h1>Hi!</h1>
-        <p><strong>Yes!</strong></p>
-        <p class="footer" style="color:red">Feetnuts</p>
-        </body>
-        </html>"""
-
-
-        with self.assertRaises(XMLSyntaxError):
-            Premailer(html).transform()
-
-    def test_HTML_missing_starting_tag(self):
-        html = u"""<html>
-
-        <!-- missing <head> -->
-
-        <title>Test</title>
-        <style>
-        p { font-size:2px;
-            width: 400px;
-            }
-        h1, h2 { color: red; }
-        strong {
-          text-decoration:none
-          }
-        </style>
-
-        </head> <!-- no starting tag for this -->
-
-        <body>
-        <h1>Hi!</h1>
-        <p><strong>Yes!</strong></p>
-        <p class="footer" style="color:red">Feetnuts</p>
-        </body>
-        </html>"""
-
-
-        with self.assertRaises(XMLSyntaxError):
-            Premailer(html).transform()
-
     def test_HTML_invalid_matching_tags(self):
         html = u"""<html>
         <head>
         <title>Test</title>
-        <styles> <!-- spelled incorrectly! -->
+        <!-- spelled incorrectly! -->
+        <styles>
         p { font-size:2px;
             width: 400px;
             }
@@ -288,6 +233,87 @@ class MyTestCase(unittest.TestCase):
 
 
         with self.assertRaises(HTMLElementError):
+            Premailer(html).transform()
+
+    ### This section of unit tests is for multiple errors ###
+    def test_CSS_missing_semicolon_and_colon(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        p { font-size 2px
+            width: 400px;
+            }
+        h1, h2 { color: red;  }
+        strong {
+          text-decoration:none
+          }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+
+        with self.assertRaisesRegexp(CSS_SyntaxError, 'ERROR Property: "2px" Unexpected ident. \[3 - Line: 2, Column: 23'):
+            Premailer(html).transform()
+
+    def test_CSS_missing_semicolon_and_colon_and_invalid_matching_tags(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <styles>
+        p { font-size 2px
+            width: 400px;
+            }
+        h1, h2 { color: red;  }
+        strong {
+          text-decoration:none
+          }
+        </styles>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+
+        with self.assertRaisesRegexp(HTMLElementError, "Tag styles invalid, line 4, column 16"):
+            Premailer(html).transform()
+
+    def test_CSS_missing_required_quotes_and_invalid_rule(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @font-fac {
+            font-family: 'MyWebFont';
+            src:    url('myfont.woff2') format(woff2), /* no quotes here */
+                    url('myfont.woff') format('woff');
+        }
+        p { font-size:2px;
+            width: 400px;
+            }
+        h1, h2 { color: red; }
+        strong {
+          text-decoration:none
+          }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+
+        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@font-fac" - Line: 2, Column: 9'):
             Premailer(html).transform()
 
 if __name__ == '__main__':
