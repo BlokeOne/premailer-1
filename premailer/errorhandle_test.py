@@ -312,8 +312,91 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
         with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@font-fac" - Line: 2, Column: 9'):
+            Premailer(html).transform()
+
+    ### This section of unit tests is for specific warning exceptions ###
+    def test_CSS_unknown_rule(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        @page { size:8.5in 11in; margin: 2cm }
+        @keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
+
+            /* Firefox */
+            @-moz-keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
+
+            /* Safari and Chrome */
+            @-webkit-keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
+
+            /* Internet Explorer */
+            @-ms-keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
+
+            /* Opera */
+            @-o-keyframes fadein {
+                from { opacity: 0; }
+                to   { opacity: 1; }
+            }
+        p { font-size:2px;
+            width: 400px;
+            }
+        h1, h2 { color: red; }
+        strong {
+          text-decoration:none
+          }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@keyframes"'):
+            Premailer(html).transform()
+
+    def test_CSS_unknown_rule(self):
+        html = u"""<html>
+        <head>
+        <title>Test</title>
+        <style>
+        img {
+            max-width: 600px;
+            outline: none;
+            text-decoration: none;
+            -ms-interpolation-mode: bicubic;
+          }
+        p { font-size:2px;
+            width: 400px;
+            }
+        h1, h2 { color: red; }
+        strong {
+          text-decoration:none
+          }
+        </style>
+        </head>
+        <body>
+        <h1>Hi!</h1>
+        <p><strong>Yes!</strong></p>
+        <p class="footer" style="color:red">Feetnuts</p>
+        </body>
+        </html>"""
+
+        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING Property: Unknown Property name: "-ms-interpolation-mode"'):
             Premailer(html).transform()
 
 if __name__ == '__main__':
