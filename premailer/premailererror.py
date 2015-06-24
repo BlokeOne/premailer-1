@@ -12,12 +12,6 @@ class PremailerError(Exception):
         self.message = message
         Exception.__init__(self, message)
 
-
-class XMLSyntaxError(PremailerError):
-    def __init__(self, message):
-        super(PremailerError, self).__init__(message)
-
-
 class CSS_SyntaxError(PremailerError):
     def __init__(self, message):
         super(PremailerError, self).__init__(message)
@@ -58,10 +52,12 @@ class CSS_SyntaxError(PremailerError):
                 Exception.__init__(self, message)
 
         # ERROR: "background: ;"
+        # ERROR: "background: }#fffef0;"
         # Should be: "ERROR CSSStyleDeclaration: Syntax Error in Property: background: "
         elif message.startswith("ERROR No content"):
             try:
                 message = message.split(':', 2)[2].strip()
+                message = message.split('ERROR CSSStyleRule:', 1)[0]
             except:
                 Exception.__init__(self, message)
 
@@ -112,9 +108,7 @@ class CSS_SyntaxError(PremailerError):
                         left, message = message.rsplit('-', 1)
                         message = "We have found an error above:{0}".format(message)
 
-        # ***************************** #
         # ** @ Media Specific Errors ** #
-        # ***************************** #
 
         # ERROR: "Gibberish-Before @media screen {"
         # Should be: "ERROR SelectorList: "@media" Invalid Selector - Line: 5, Column: 9"
@@ -178,9 +172,8 @@ class CSS_SyntaxError(PremailerError):
             except:
                 Exception.__init__(self, message)
 
-        # **************************************************************************#
-        # *************************** WARNING Messages *****************************#
-        # **************************************************************************#
+
+        # *************************** WARNING Messages ***************************** #
 
         # WARNING "backgrund: #fffef0;"
         # Should do: "WARNING Property: Unknown Property name: "backgrund" - Line: 4, Column: 17"

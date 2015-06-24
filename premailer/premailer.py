@@ -163,12 +163,11 @@ class Premailer(object):
         h = logging.StreamHandler(mylog)
         h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         cssutils.log.addHandler(h)
-        if self.disable_exceptions:
+        if self.disable_validation and self.disable_exceptions:
             cssutils.log.setLevel(logging.CRITICAL) # INFO, ERROR, WARNING,ETC
-        # cssutils.CSSParser(loglevel=logging.INFO)
         sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
         assert sheet
-        if mylog.getvalue():
+        if mylog.getvalue() and not self.disable_exceptions:
             raise CSS_SyntaxError(mylog.getvalue())
 
         for rule in sheet:
@@ -224,13 +223,21 @@ class Premailer(object):
             parser = etree.XMLParser(ns_clean=False, resolve_entities=False)
         else:
             parser = etree.HTMLParser(recover=False)
+            if self.disable_exceptions:
+                parser = etree.HTMLParser()
         stripped = self.html.strip()
-        try:
-            tree = etree.fromstring(stripped, parser).getroottree()
-        except etree.XMLSyntaxError as e:
-            raise HTMLElementError(e)
-        page = tree.getroot()
 
+        # raise exceptions for HTML errors
+
+        if not self.disable_exceptions:
+            try:
+                tree = etree.fromstring(stripped, parser).getroottree()
+            except etree.XMLSyntaxError as e:
+                raise HTMLElementError(e)
+        else:
+            tree = etree.fromstring(stripped, parser).getroottree()
+
+        page = tree.getroot()
 
         # lxml inserts a doctype if none exists, so only include it in
         # the root if it was in the original html.
@@ -375,9 +382,9 @@ class Premailer(object):
                 parent = item.getparent()
                 del parent.attrib['class']
 
-        ##
-        ## URLs
-        ##
+        #
+        # URLs
+        #
         if self.base_url:
             for attr in ('href', 'src'):
                 for item in page.xpath("//@%s" % attr):
@@ -401,10 +408,9 @@ class Premailer(object):
         if self.strip_important:
             out = _importants.sub('', out)
 
-        ### collect metadata instead ###
+        # collect metadata instead
         if self.metadata:
             return out, self._detect_tags(out)
-        ################################
 
         return out
 
@@ -536,8 +542,10 @@ class Premailer(object):
                     if not rule_text:
                         if rule.type == rule.MEDIA_RULE:
                            raise CSS_SyntaxError("You have an empty @media Rule!")
-                        if rule.type == self.FONT_FACE_RULE:
+                        elif rule.type == self.FONT_FACE_RULE:
                             raise CSS_SyntaxError("You have an empty @font-face Rule!")
+                        else:
+                            raise CSS_SyntaxError("You have an empty Rule!")
 
                     rule_definition, rule_text = rule_text.split('{', 1)
                     rule_definition.strip()
@@ -655,8 +663,8 @@ def transform(html, base_url=None):
                      remove_classes=False,
                      strip_important=False,
                      metadata=True,
-                     disable_validation=True,
-                     disable_exceptions=True).transform()
+                     disable_validation=False,
+                     disable_exceptions=False).transform()
 
 if __name__ == '__main__':
     html = u"""<html>
@@ -666,7 +674,7 @@ if __name__ == '__main__':
         /* @import url(http://fonts.googleapis.com/css?family=Slabo+27px); */
         @media screen {
             html {
-                background: #fffef0
+                background: #fffef0;
                 color: #300;
             }
             body {
@@ -681,7 +689,7 @@ if __name__ == '__main__':
         p.footer { font-size: 1px}
         </style>
         <style>
-
+        @page { size:8.5in 11in; margin: 2cm }
 
         @media screen {
             html {

@@ -369,7 +369,7 @@ class MyTestCase(unittest.TestCase):
         with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@keyframes"'):
             Premailer(html).transform()
 
-    def test_CSS_unknown_rule(self):
+    def test_CSS_unknown_property(self):
         html = u"""<html>
         <head>
         <title>Test</title>

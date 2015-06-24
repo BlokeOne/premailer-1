@@ -88,7 +88,15 @@ def main(args):
     parser.add_argument(
         "--disable-validation", default=False,
         action="store_true", dest="disable_validation",
-        help="Disable CSSParser validation of attributes and values",
+        help="Disable CSSParser validation of attributes and values.  "
+             "Must be set to False for disable-exceptions to function properly.",
+    )
+    parser.add_argument(
+        "--disable-exceptions", default=False,
+        action="store_true", dest="disable_exceptions",
+        help="Disable exception raising using the CSSParser validation from cssutils.  "
+             "Does not disable empty rule exception.  If disable-exceptions is True and "
+             "disable-validation is False, the validation messages are printed twice. "
     )
     parser.add_argument(
         "---metadata", default=False,
@@ -115,6 +123,7 @@ def main(args):
         base_path=options.base_path,
         disable_basic_attributes=options.disable_basic_attributes,
         disable_validation=options.disable_validation,
+        disable_exceptions=options.disable_exceptions,
         metadata=options.metadata
     )
     options.outfile.write(p.transform())
