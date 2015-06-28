@@ -8,9 +8,8 @@ def main(args):
     """Command-line tool to transform html style to inline css
 
     Usage::
-
-        $ echo '<style>h1 { color:red; }</style><h1>Title</h1>' | python -m premailer
-        <h1 style="color:red"></h1>
+        $ echo '<style>h1 { color:red; }</style><h1>Title</h1>'
+         | python -m premailer <h1 style="color:red"></h1>
         $ cat newsletter.html | python -m premailer
     """
 
@@ -88,15 +87,16 @@ def main(args):
     parser.add_argument(
         "--disable-validation", default=False,
         action="store_true", dest="disable_validation",
-        help="Disable CSSParser validation of attributes and values.  "
-             "Must be set to False for disable-exceptions to function properly.",
+        help="Disable CSSParser validation of attributes and values. Must "
+             "be set to False for disable-exceptions to function properly.",
     )
     parser.add_argument(
         "--disable-exceptions", default=False,
         action="store_true", dest="disable_exceptions",
-        help="Disable exception raising using the CSSParser validation from cssutils.  "
-             "Does not disable empty rule exception.  If disable-exceptions is True and "
-             "disable-validation is False, the validation messages are printed twice. "
+        help="Disable exception raising using the CSSParser validation from "
+             "cssutils.  Does not disable empty rule exception.  If "
+             "disable-exceptions is True and disable-validation is False, the "
+             "validation messages are printed twice. "
     )
     parser.add_argument(
         "---metadata", default=False,
@@ -107,7 +107,8 @@ def main(args):
     options = parser.parse_args(args)
 
     if options.disable_basic_attributes:
-        options.disable_basic_attributes = options.disable_basic_attributes.split()
+        options.disable_basic_attributes = \
+            options.disable_basic_attributes.split()
 
     p = Premailer(
         html=options.infile.read().decode('utf-8'),

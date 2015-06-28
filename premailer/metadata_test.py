@@ -33,9 +33,12 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-                                    {u'body': [{u'background-color': u'lightblue'}]},
-                                    {u'head': [{u'background-color': u'purple'}]}]}]
+            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'},
+                                               {u'color': u'#300'}]},
+                                    {u'body': [
+                                        {u'background-color': u'lightblue'}]},
+                                    {u'head': [
+                                        {u'background-color': u'purple'}]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
@@ -67,9 +70,12 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'print': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-                                                {u'body': [{u'background-color': u'lightblue'}]},
-                                                {u'head': [{u'background-color': u'purple'}]}]}]
+            '@media': [{u'print': [{u'html': [{u'background': u'#fffef0'},
+                                              {u'color': u'#300'}]},
+                                   {u'body': [
+                                       {u'background-color': u'lightblue'}]},
+                                   {u'head': [
+                                       {u'background-color': u'purple'}]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
@@ -101,10 +107,11 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'only screen and (max-width: 680px)': [{u'html': [{u'background': u'#fffef0'},
-                                                    {u'color': u'#300'}]},
-                                                    {u'body': [{u'background-color': u'lightblue'}]},
-                                                    {u'head': [{u'background-color': u'purple'}]}]}]
+            '@media': [{u'only screen and (max-width: 680px)': [
+                {u'html': [{u'background': u'#fffef0'},
+                           {u'color': u'#300'}]},
+                {u'body': [{u'background-color': u'lightblue'}]},
+                {u'head': [{u'background-color': u'purple'}]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
@@ -145,10 +152,17 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'screen, projection': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-            {u'body': [{u'max-width': u'35em'}, {u'margin': u'0 auto'}]}]},
-            {u'print': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
-            {u'body': [{u'padding': u'1in'}, {u'border': u'0.5pt solid #666'}]}]}]
+            '@media': [
+                {u'screen, projection': [
+                    {u'html': [{u'background': u'#fffef0'},
+                               {u'color': u'#300'}]},
+                    {u'body': [{u'max-width': u'35em'},
+                               {u'margin': u'0 auto'}]}]},
+                {u'print': [
+                    {u'html': [{u'background': u'#fff'},
+                               {u'color': u'#000'}]},
+                    {u'body': [{u'padding': u'1in'},
+                               {u'border': u'0.5pt solid #666'}]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
@@ -203,17 +217,27 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-            {u'body': [{u'background-color': u'lightblue'}]}, {u'head': [{u'background-color': u'purple'}]}]},
-            {u'screen, projection': [{u'html': [{u'background': u'#fffef0'}, {u'color': u'#300'}]},
-            {u'body': [{u'max-width': u'35em'}, {u'margin': u'0 auto'}]}]},
-            {u'print': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
-            {u'body': [{u'padding': u'1in'}, {u'border': u'0.5pt solid #666'}]}]}]
+            '@media': [{u'screen': [{u'html': [{u'background': u'#fffef0'},
+                                               {u'color': u'#300'}]},
+                                    {u'body': [
+                                        {u'background-color': u'lightblue'}]},
+                                    {u'head': [
+                                        {u'background-color': u'purple'}]}]},
+                       {u'screen, projection': [
+                           {u'html': [{u'background': u'#fffef0'},
+                                      {u'color': u'#300'}]},
+                           {u'body': [{u'max-width': u'35em'},
+                                      {u'margin': u'0 auto'}]}]},
+                       {u'print': [{u'html': [{u'background': u'#fff'},
+                                              {u'color': u'#000'}]},
+                                   {u'body': [{u'padding': u'1in'},
+                                              {u'border': u'0.5pt solid #666'
+                                               }]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
-    def test_multiple_media_queries_with_identical_identifier_selectors_and_properties(self):
+    def test_media_queries_identical_identifier_selectors_and_properties(self):
         html = u"""<html>
         <head>
         <title>Test</title>
@@ -263,21 +287,25 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {
-            '@media': [{u'screen, projection': [{u'html': [{u'background': u'#fffef0'},
-                                                           {u'color': u'#300'}]},
-                                                {u'body': [{u'max-width': u'35em'},
-                                                           {u'margin': u'0 auto'}]}]},
-                       {u'screen': [{u'html': [{u'background': u'#fff'}, {u'color': u'#000'}]},
-                                    {u'body': [{u'background-color': u'lightblue'},
-                                               {u'padding': u'1in'},
-                                               {u'border': u'0.5pt solid #666'}]},
-                                    {u'head': [{u'background-color': u'purple'}]}]}]
+            '@media': [
+                {u'screen, projection': [
+                    {u'html': [{u'background': u'#fffef0'},
+                               {u'color': u'#300'}]},
+                    {u'body': [{u'max-width': u'35em'},
+                               {u'margin': u'0 auto'}]}]},
+                {u'screen': [
+                    {u'html': [{u'background': u'#fff'},
+                               {u'color': u'#000'}]},
+                    {u'body': [{u'background-color': u'lightblue'},
+                               {u'padding': u'1in'},
+                               {u'border': u'0.5pt solid #666'}]},
+                    {u'head': [{u'background-color': u'purple'}]}]}]
         }
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
-    ### This section of unit tests is for @Font-Face ###
-    def  test_standard_font_face(self):
+    # This section of unit tests is for @Font-Face
+    def test_standard_font_face(self):
         html = u"""<html>
         <head>
         <title>Test</title>
@@ -297,7 +325,8 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {'@font-face': [{u'font-family': u'myFirstFont',
-                    u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'}]}
+                                    u'src': u'url(sansation_bold.woff)',
+                                    u'font-weight': u'bold'}]}
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
@@ -326,9 +355,11 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {'@font-face': [{u'font-family': u'myFirstFont',
-                    u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'},
-                    {u'font-family': u'mySecondFont',
-                    u'src': u'url(sansation_italic.woff)', u'font-style': u'italic'}]}
+                                    u'src': u'url(sansation_bold.woff)',
+                                    u'font-weight': u'bold'},
+                                   {u'font-family': u'mySecondFont',
+                                    u'src': u'url(sansation_italic.woff)',
+                                    u'font-style': u'italic'}]}
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
@@ -369,18 +400,22 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {'@font-face': [{u'font-family': u'myFirstFont',
-                    u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'},
+                                    u'src': u'url(sansation_bold.woff)',
+                                    u'font-weight': u'bold'},
                     {u'font-family': u'mySecondFont',
-                    u'src': u'url(sansation_italic.woff)', u'font-style': u'italic'},
+                     u'src': u'url(sansation_italic.woff)',
+                     u'font-style': u'italic'},
                     {u'font-family': u'myThirdFont',
-                    u'src': u'url(sansation_normal.woff)', u'font-weight': u'normal'},
+                     u'src': u'url(sansation_normal.woff)',
+                     u'font-weight': u'normal'},
                     {u'font-family': u'myFourthFont',
-                    u'src': u'url(sansation_oblique.woff)', u'font-style': u'oblique'}]}
+                     u'src': u'url(sansation_oblique.woff)',
+                     u'font-style': u'oblique'}]}
 
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
-    ### This section of unit tests is for HTML element detection ###
+    # This section of unit tests is for HTML element detection
     def test_standard_button_tag(self):
         html = u"""<html>
         <head>
@@ -472,11 +507,12 @@ class MyTestCase(unittest.TestCase):
         </html>"""
 
         expected = {'style': False, 'script': False, 'button-element': False,
-                    'button-attribute': False, '@media': False, '@font-face': False}
+                    'button-attribute': False, '@media': False,
+                    '@font-face': False}
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 
-    ### This sectiion of unit tests is for miscellaneous scenarios ###
+    # This sectiion of unit tests is for miscellaneous scenarios
     def test_multiple_new_lines_in_css_rule(self):
         html = u"""<html>
         <head>
@@ -511,8 +547,9 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-        expected = {'style': True, '@font-face': [{u'font-family': u'myFirstFont',
-                    u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'}]}
+        expected = {'style': True, '@font-face': [
+            {u'font-family': u'myFirstFont',
+             u'src': u'url(sansation_bold.woff)', u'font-weight': u'bold'}]}
         actual = Premailer(html, metadata=True).transform()
         self.assertDictContainsSubset(expected, actual[1])
 

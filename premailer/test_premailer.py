@@ -162,8 +162,10 @@ class Tests(unittest.TestCase):
         result_html = p.transform()
 
         compare_html(expect_html, result_html)
-        # expect_html = whitespace_between_tags.sub('><', expect_html).strip()
-        # result_html = whitespace_between_tags.sub('><', result_html).strip()
+        # expect_html =
+        # whitespace_between_tags.sub('><', expect_html).strip()
+        # result_html =
+        # whitespace_between_tags.sub('><', result_html).strip()
         #
         # eq_(expect_html, result_html)
 
@@ -193,7 +195,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_mixed_pseudo_selectors(self):
-        """mixing pseudo selectors with straight forward selectors"""
+        """mixing pseudo selectors with straight
+        forward selectors"""
 
         html = """<html>
         <head>
@@ -289,7 +292,8 @@ class Tests(unittest.TestCase):
         eq_(rules_dict['ul li'], 'list-style:none')
         ok_('a:hover' not in rules_dict)
 
-        p = Premailer('html', exclude_pseudoclasses=True)  # won't need the html
+        p = Premailer(
+            'html', exclude_pseudoclasses=True)  # won't need the html
         func = p._parse_style_rules
         rules, leftover = func("""
         ul li {  list-style: none; }
@@ -336,7 +340,8 @@ class Tests(unittest.TestCase):
 
     def test_base_url_fixer(self):
         """if you leave some URLS as /foo and set base_url to
-        'http://www.google.com' the URLS become 'http://www.google.com/foo'
+        'http://www.google.com' the URLS become
+        'http://www.google.com/foo'
         """
         html = '''<html>
         <head>
@@ -377,7 +382,8 @@ class Tests(unittest.TestCase):
 
     def test_base_url_with_path(self):
         """if you leave some URLS as /foo and set base_url to
-        'http://www.google.com' the URLS become 'http://www.google.com/foo'
+        'http://www.google.com' the URLS become
+        'http://www.google.com/foo'
         """
 
         html = '''<html>
@@ -467,7 +473,6 @@ class Tests(unittest.TestCase):
         #   from premailer import transform
         #   print transform(html, base_url=base_url)
 
-
         html = '''<html>
         <head>
         <style type="text/css">h1{color:#123}</style>
@@ -513,9 +518,9 @@ class Tests(unittest.TestCase):
         p = Premailer(html, exclude_pseudoclasses=False)
         result_html = p.transform()
 
-        # because we're dealing with random dicts here we can't predict what
-        # order the style attribute will be written in so we'll look for things
-        # manually.
+        # because we're dealing with random dicts here
+        # we can't predict what order the style attribute
+        # will be written in so we'll look for things manually.
         ok_('<p style="::first-letter{font-size:300%; float:left}">'
             'Paragraph</p>' in result_html)
 
@@ -547,7 +552,8 @@ class Tests(unittest.TestCase):
         <head>
         <style type="text/css">a:hover {text-decoration:none}
         a:hover {border:1px solid green}
-        a:visited {border:1px solid green}p::first-letter {float:left;font-size:300%}
+        a:visited {border:1px solid green}
+        p::first-letter {float:left;font-size:300%}
         </style>
         </head>
         <body>
@@ -569,8 +575,8 @@ class Tests(unittest.TestCase):
         # XXX
 
     def test_css_with_html_attributes(self):
-        """Some CSS styles can be applied as normal HTML attribute like
-        'background-color' can be turned into 'bgcolor'
+        """Some CSS styles can be applied as normal HTML attribute
+        like 'background-color' can be turned into 'bgcolor'
         """
 
         html = """<html>
@@ -615,8 +621,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_css_disable_basic_html_attributes(self):
-        """Some CSS styles can be applied as normal HTML attribute like
-        'background-color' can be turned into 'bgcolor'
+        """Some CSS styles can be applied as normal HTML attribute
+        like 'background-color' can be turned into 'bgcolor'
         """
 
         html = """<html>
@@ -679,7 +685,8 @@ class Tests(unittest.TestCase):
         ok_('<html>' in result_html)
         ok_('<style media="only screen and (max-device-width: 480px)" '
             'type="text/css">\n'
-            '* {line-height: normal !important; -webkit-text-size-adjust: 125%}\n'
+            '* {line-height: normal !important; '
+            '-webkit-text-size-adjust: 125%}\n'
             '</style>' in result_html)
 
     def test_mailto_url(self):
@@ -1053,7 +1060,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_multiple_style_elements(self):
-        """Asserts that rules from multiple style elements are inlined correctly."""
+        """Asserts that rules from multiple
+        style elements are inlined correctly."""
 
         html = """<html>
         <head>
@@ -1083,7 +1091,8 @@ class Tests(unittest.TestCase):
         </head>
         <body>
         <h1 style="color:green">Hi!</h1>
-        <p style="font-size:120%"><strong style="text-decoration:none">Yes!</strong></p>
+        <p style="font-size:120%">
+        <strong style="text-decoration:none">Yes!</strong></p>
         </body>
         </html>"""
 
@@ -1123,8 +1132,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_ignore_style_elements_with_media_attribute(self):
-        """Asserts that style elements with media attributes other than
-        'screen' are ignored."""
+        """Asserts that style elements with media attributes
+        other than 'screen' are ignored."""
 
         html = """<html>
         <head>
@@ -1166,7 +1175,8 @@ class Tests(unittest.TestCase):
         </head>
         <body>
         <h1 style="color:green">Hi!</h1>
-        <p style="font-size:16px"><strong style="text-decoration:none">Yes!</strong></p>
+        <p style="font-size:16px">
+        <strong style="text-decoration:none">Yes!</strong></p>
         </body>
         </html>"""
 
@@ -1176,7 +1186,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_leftover_important(self):
-        """Asserts that leftover styles should be marked as !important."""
+        """Asserts that leftover styles should be
+        marked as !important."""
 
         html = """<html>
         <head>
@@ -1297,31 +1308,36 @@ class Tests(unittest.TestCase):
         ok_('<html>' in result_html)
         ok_('<style media="only screen and (max-device-width: 480px)" '
             'type="text/css">\n'
-            '* {line-height: normal !important; -webkit-text-size-adjust: 125%}\n'
+            '* {line-height: normal !important; '
+            '-webkit-text-size-adjust: 125%}\n'
             '</style>' in result_html)
 
     def test_multithreading(self):
-        """The test tests thread safety of merge_styles function which employs
-        thread non-safe cssutils calls.
-        The test would fail if merge_styles would have not been thread-safe """
+        """The test tests thread safety of merge_styles
+        function which employs thread non-safe cssutils calls.
+        The test would fail if merge_styles would have
+        not been thread-safe """
 
         import threading
         import logging
-        THREADS = 30
-        REPEATS = 100
+        threads = 30
+        repeats = 100
 
         class RepeatMergeStylesThread(threading.Thread):
-            """The thread is instantiated by test and run multiple times in parallel."""
+            """The thread is instantiated by test and
+            run multiple times in parallel."""
             exc = None
 
             def __init__(self, old, new, class_):
-                """The constructor just stores merge_styles parameters"""
+                """The constructor just stores
+                merge_styles parameters"""
                 super(RepeatMergeStylesThread, self).__init__()
                 self.old, self.new, self.class_ = old, new, class_
 
             def run(self):
-                """Calls merge_styles in a loop and sets exc attribute if merge_styles raises an exception."""
-                for i in range(0, REPEATS):
+                """Calls merge_styles in a loop and sets exc
+                attribute if merge_styles raises an exception."""
+                for i in range(0, repeats):
                     try:
                         merge_styles(self.old, self.new, self.class_)
                     except Exception, e:
@@ -1332,8 +1348,10 @@ class Tests(unittest.TestCase):
         new = 'background-color:#dddddd;'
         class_ = ''
 
-        # start multiple threads concurrently; each calls merge_styles many times
-        threads = [RepeatMergeStylesThread(old, new, class_) for i in range(0, THREADS)]
+        # start multiple threads concurrently; each calls
+        # merge_styles many times
+        threads = [RepeatMergeStylesThread(old, new, class_)
+                   for i in range(0, threads)]
         for t in threads:
             t.start()
 
@@ -1341,7 +1359,8 @@ class Tests(unittest.TestCase):
         for t in threads:
             t.join()
 
-        # check if any thread raised exception while in merge_styles call
+        # check if any thread raised exception while in
+        # merge_styles call
         exceptions = [t.exc for t in threads if t.exc is not None]
         eq_(exceptions, [])
 
@@ -1355,7 +1374,8 @@ class Tests(unittest.TestCase):
         h1 { color:red; }
         h3 { color:yellow; }
         </style>
-        <link href="premailer/test-external-links.css" rel="stylesheet" type="text/css">
+        <link href="premailer/test-external-links.css"
+        rel="stylesheet" type="text/css">
         <style type="text/css">
         h1 { color:orange; }
         </style>
@@ -1382,13 +1402,14 @@ class Tests(unittest.TestCase):
         </html>"""
 
         p = Premailer(html,
-                    strip_important=False)
+                      strip_important=False)
         result_html = p.transform()
 
         compare_html(expect_html, result_html)
 
     def test_external_styles_and_links(self):
-        """Test loading stylesheets via both the 'external_styles' argument and link tags"""
+        """Test loading stylesheets via both the
+        'external_styles' argument and link tags"""
 
         html = """<html>
         <head>
@@ -1412,10 +1433,9 @@ class Tests(unittest.TestCase):
         </html>"""
 
         p = Premailer(html,
-                    strip_important=False,
-                    external_styles=['test-external-styles.css'],
-                    base_path='premailer/'
-                    )
+                      strip_important=False,
+                      external_styles=['test-external-styles.css'],
+                      base_path='premailer/')
         result_html = p.transform()
 
         compare_html(expect_html, result_html)
@@ -1426,7 +1446,8 @@ class Tests(unittest.TestCase):
 
         html = """<html>
         <head>
-        <link href="https://www.com/style1.css" rel="stylesheet" type="text/css">
+        <link href="https://www.com/style1.css"
+        rel="stylesheet" type="text/css">
         <link href="//www.com/style2.css" rel="stylesheet" type="text/css">
         <link href="//www.com/style3.css" rel="stylesheet" type="text/css">
         </head>
@@ -1542,7 +1563,8 @@ class Tests(unittest.TestCase):
         compare_html(expect_html, result_html)
 
     def test_comments_in_media_queries(self):
-        """CSS comments inside a media query block should not be a problem"""
+        """CSS comments inside a media query block
+        should not be a problem"""
         html = """<!doctype html>
         <html lang="en">
         <head>
@@ -1577,7 +1599,8 @@ class Tests(unittest.TestCase):
                 src:
                     local('Garamond'),
                     local('Garamond-Regular'),
-                    url('Garamond.ttf') format('truetype'); /* Safari, Android, iOS */
+                    url('Garamond.ttf')
+                    format('truetype'); /* Safari, Android, iOS */
                     font-weight: normal;
                     font-style: normal;
             }
@@ -1631,6 +1654,6 @@ class Tests(unittest.TestCase):
         </head>
         <body></body>
         </html>"""
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             p = Premailer(html, disable_validation=True)
             p.transform()  # it should just work

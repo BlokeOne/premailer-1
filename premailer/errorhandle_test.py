@@ -1,8 +1,9 @@
 import unittest
-from premailer import Premailer, CSS_SyntaxError, HTMLElementError
+from premailer import Premailer, CSSSyntaxError, HTMLElementError
+
 
 class MyTestCase(unittest.TestCase):
-    ### This section of unit tests is for CSS errors ###
+    # This section of unit tests is for CSS errors
     def test_CSS_missing_semicolon(self):
         html = u"""<html>
         <head>
@@ -24,8 +25,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_missing_colon(self):
@@ -49,8 +49,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_missing_brace(self):
@@ -74,8 +73,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_spelling_typo_value(self):
@@ -99,8 +97,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_spelling_typo_property(self):
@@ -124,8 +121,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_extra_random_characters(self):
@@ -149,8 +145,7 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
     def test_CSS_missing_required_quotes(self):
@@ -179,11 +174,10 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaises(CSS_SyntaxError):
+        with self.assertRaises(CSSSyntaxError):
             Premailer(html).transform()
 
-    ### This section of unit tests is for HTML errors ###
+    # This section of unit tests is for HTML errors
     def test_HTML_invalid_tag(self):
         html = u"""<html>
         <heads>
@@ -204,7 +198,6 @@ class MyTestCase(unittest.TestCase):
         <p class="footer" style="color:red">Feetnuts</p>
         </body>
         </html>"""
-
 
         with self.assertRaises(HTMLElementError):
             Premailer(html).transform()
@@ -231,11 +224,10 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
         with self.assertRaises(HTMLElementError):
             Premailer(html).transform()
 
-    ### This section of unit tests is for multiple errors ###
+    # This section of unit tests is for multiple errors
     def test_CSS_missing_semicolon_and_colon(self):
         html = u"""<html>
         <head>
@@ -257,8 +249,9 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaisesRegexp(CSS_SyntaxError, 'ERROR Property: "2px" Unexpected ident. \[3 - Line: 2, Column: 23'):
+        with self.assertRaisesRegexp(CSSSyntaxError,
+                                     'ERROR Property: "2px" Unexpected ident. '
+                                     '\[3 - Line: 2, Column: 23'):
             Premailer(html).transform()
 
     def test_CSS_missing_semicolon_and_colon_and_invalid_matching_tags(self):
@@ -282,8 +275,8 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-
-        with self.assertRaisesRegexp(HTMLElementError, "Tag styles invalid, line 4, column 16"):
+        with self.assertRaisesRegexp(HTMLElementError,
+                                     "Tag styles invalid, line 4, column 16"):
             Premailer(html).transform()
 
     def test_CSS_missing_required_quotes_and_invalid_rule(self):
@@ -312,10 +305,13 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@font-fac" - Line: 2, Column: 9'):
+        with self.assertRaisesRegexp(CSSSyntaxError,
+                                     'WARNING CSSStylesheet: '
+                                     'Unknown @rule found: '
+                                     '"@font-fac" - Line: 2, Column: 9'):
             Premailer(html).transform()
 
-    ### This section of unit tests is for specific warning exceptions ###
+    # This section of unit tests is for specific warning exceptions
     def test_CSS_unknown_rule(self):
         html = u"""<html>
         <head>
@@ -366,7 +362,9 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING CSSStylesheet: Unknown @rule found: "@keyframes"'):
+        with self.assertRaisesRegexp(CSSSyntaxError,
+                                     'WARNING CSSStylesheet: '
+                                     'Unknown @rule found: "@keyframes"'):
             Premailer(html).transform()
 
     def test_CSS_unknown_property(self):
@@ -396,7 +394,10 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-        with self.assertRaisesRegexp(CSS_SyntaxError, 'WARNING Property: Unknown Property name: "-ms-interpolation-mode"'):
+        with self.assertRaisesRegexp(CSSSyntaxError,
+                                     'WARNING Property: '
+                                     'Unknown Property name: '
+                                     '"-ms-interpolation-mode"'):
             Premailer(html).transform()
 
 if __name__ == '__main__':

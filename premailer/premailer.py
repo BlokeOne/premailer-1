@@ -50,8 +50,10 @@ def merge_styles(old, new, class_=''):
     new_keys = set()
     news = []
 
-    # The code below is wrapped in a critical section implemented via ``RLock``-class lock.
-    # The lock is required to avoid ``cssutils`` concurrency issues documented in issue #65
+    # The code below is wrapped in a critical section
+    # implemented via ``RLock``-class lock.
+    # The lock is required to avoid ``cssutils``
+    # concurrency issues documented in issue #65
     with merge_styles._lock:
         for k, v in csstext_to_pairs(new):
             news.append((k.strip(), v.strip()))
@@ -73,7 +75,8 @@ def merge_styles(old, new, class_=''):
 
     # Perform the merge
     relevant_olds = groups.get(class_, {})
-    merged = [style for style in relevant_olds if style[0] not in new_keys] + news
+    merged = [style for style in relevant_olds if style[0]
+              not in new_keys] + news
     groups[class_] = merged
 
     if len(groups) == 1:
@@ -90,8 +93,10 @@ def merge_styles(old, new, class_=''):
                                              in mergeable)))
         return ' '.join(x for x in all if x != '{}')
 
-# The lock is used in merge_styles function to work around threading concurrency bug of cssutils library.
-# The bug is documented in issue #65. The bug's reproduction test in test_premailer.test_multithreading.
+# The lock is used in merge_styles function to work around
+# threading concurrency bug of cssutils library.
+# The bug is documented in issue #65. The bug's reproduction
+# test in test_premailer.test_multithreading.
 merge_styles._lock = threading.RLock()
 
 
@@ -164,11 +169,12 @@ class Premailer(object):
         h.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         cssutils.log.addHandler(h)
         if self.disable_validation and self.disable_exceptions:
-            cssutils.log.setLevel(logging.CRITICAL) # INFO, ERROR, WARNING,ETC
-        sheet = cssutils.parseString(css_body, validate=not self.disable_validation)
+            cssutils.log.setLevel(logging.CRITICAL)
+        sheet = cssutils.parseString(css_body,
+                                     validate=not self.disable_validation)
         assert sheet
         if mylog.getvalue() and not self.disable_exceptions:
-            raise CSS_SyntaxError(mylog.getvalue())
+            raise CSSSyntaxError(mylog.getvalue())
 
         for rule in sheet:
             # handle media rule
@@ -176,7 +182,7 @@ class Premailer(object):
                 leftover.append(rule)
                 continue
             # handle font-face rule
-            if rule.type == self.FONT_FACE_RULE and self.metadata == True:
+            if rule.type == self.FONT_FACE_RULE and self.metadata:
                 leftover.append(rule)
             # only proceed for things we recognize
             if rule.type != rule.STYLE_RULE:
@@ -191,8 +197,8 @@ class Premailer(object):
                 if x.strip() and not x.strip().startswith('@')
             )
             for selector in selectors:
-                if (':' in selector and self.exclude_pseudoclasses and
-                                ':' + selector.split(':', 1)[1]
+                if (':' in selector and self.exclude_pseudoclasses and ':' +
+                    selector.split(':', 1)[1]
                         not in FILTER_PSEUDOSELECTORS):
                     # a pseudoclass
                     leftover.append((selector, bulk))
@@ -205,7 +211,8 @@ class Premailer(object):
                 class_count = selector.count('.')
                 element_count = len(_element_selector_regex.findall(selector))
 
-                specificity = (id_count, class_count, element_count, ruleset_index, rule_index)
+                specificity = (id_count, class_count, element_count,
+                               ruleset_index, rule_index)
 
                 rules.append((specificity, selector, bulk))
                 rule_index += 1
@@ -213,8 +220,8 @@ class Premailer(object):
         return rules, leftover
 
     def transform(self, pretty_print=True, **kwargs):
-        """change the self.html and return it with CSS turned into style
-        attributes.
+        """change the self.html and return it with CSS turned
+        into style attributes.
         """
         if etree is None:
             return self.html
@@ -256,8 +263,8 @@ class Premailer(object):
         index = 0
 
         for element in CSSSelector('style,link[rel~=stylesheet]')(page):
-            # If we have a media attribute whose value is anything other than
-            # 'screen', ignore the ruleset.
+            # If we have a media attribute whose value is anything
+            # other than 'screen', ignore the ruleset.
 
             media = element.attrib.get('media')
             if media and media != 'screen':
@@ -271,13 +278,15 @@ class Premailer(object):
                 if not href:
                     continue
 
-                # Try loading external style sheets and continue if not found
+                # Try loading external style sheets and continue
+                # if not found
                 try:
                     css_body = self._load_external(href)
                 except ValueError:
                     continue
 
-            these_rules, these_leftover = self._parse_style_rules(css_body, index)
+            these_rules, these_leftover = \
+                self._parse_style_rules(css_body, index)
             index += 1
             rules.extend(these_rules)
 
@@ -297,9 +306,10 @@ class Premailer(object):
                     # media rule
                     else:
                         if item.type == self.FONT_FACE_RULE:
-                            if self.metadata != True:
+                            if not self.metadata:
                                 continue
-                            if isinstance(item, cssutils.css.csscomment.CSSComment):
+                            if isinstance(item,
+                                          cssutils.css.csscomment.CSSComment):
                                 continue
                             for key in item.style.keys():
                                 item.style[key] = (
@@ -309,7 +319,8 @@ class Premailer(object):
                             lines.append(item.cssText)
                             continue
                         for rule in item.cssRules:
-                            if isinstance(rule, cssutils.css.csscomment.CSSComment):
+                            if isinstance(rule,
+                                          cssutils.css.csscomment.CSSComment):
                                 continue
                             for key in rule.style.keys():
                                 rule.style[key] = (
@@ -332,11 +343,13 @@ class Premailer(object):
         if self.external_styles:
             for stylefile in self.external_styles:
                 css_body = self._load_external(stylefile)
-                these_rules, these_leftover = self._parse_style_rules(css_body, index)
+                these_rules, these_leftover = \
+                    self._parse_style_rules(css_body, index)
                 index += 1
                 rules.extend(these_rules)
 
-        # rules is a tuple of (specificity, selector, styles), where specificity is a tuple
+        # rules is a tuple of (specificity, selector, styles),
+        # where specificity is a tuple
         # ordered such that more specific rules sort larger.
         rules.sort(key=operator.itemgetter(0))
 
@@ -357,7 +370,7 @@ class Premailer(object):
             sel = CSSSelector(selector)
             for item in sel(page):
                 old_style = item.attrib.get('style', '')
-                if not item in first_time:
+                if item not in first_time:
                     new_style = merge_styles(old_style, style, class_)
                     first_time.append(item)
                     first_time_styles.append((item, old_style))
@@ -397,14 +410,16 @@ class Premailer(object):
                         continue
                     if not self.base_url.endswith('/'):
                         self.base_url += '/'
-                    parent.attrib[attr] = urlparse.urljoin(self.base_url,
-                                                           parent.attrib[attr].lstrip('/'))
+                    parent.attrib[attr] = \
+                        urlparse.urljoin(self.base_url,
+                                         parent.attrib[attr].lstrip('/'))
 
         kwargs.setdefault('method', self.method)
         kwargs.setdefault('pretty_print', pretty_print)
         out = etree.tostring(root, **kwargs)
         if self.method == 'xml':
-            out = _cdata_regex.sub(lambda m: '/*<![CDATA[*/%s/*]]>*/' % m.group(1), out)
+            out = _cdata_regex.sub(lambda m: '/*<![CDATA[*/%s/*]]>*/'
+                                             % m.group(1), out)
         if self.strip_important:
             out = _importants.sub('', out)
 
@@ -459,14 +474,15 @@ class Premailer(object):
     def _style_to_basic_html_attributes(self, element, style_content,
                                         force=False):
         """given an element and styles like
-        'background-color:red; font-family:Arial' turn some of that into HTML
-        attributes. like 'bgcolor', etc.
+        'background-color:red; font-family:Arial' turn some of
+        that into HTML attributes. like 'bgcolor', etc.
 
         Note, the style_content can contain pseudoclasses like:
-        '{color:red; border:1px solid green} :visited{border:1px solid green}'
+        '{color:red; border:1px solid green} :
+        visited{border:1px solid green}'
         """
         if style_content.count('}') and \
-                        style_content.count('{') == style_content.count('{'):
+           style_content.count('{') == style_content.count('{'):
             style_content = style_content.split('}')[0][1:]
 
         attributes = {}
@@ -488,14 +504,16 @@ class Premailer(object):
             #     print 'value', repr(value)
 
         for key, value in attributes.items():
-            if key in element.attrib and not force or key in self.disable_basic_attributes:
+            if key in element.attrib and not force or key in \
+                    self.disable_basic_attributes:
                 # already set, don't dare to overwrite
                 continue
             element.attrib[key] = value
 
     def _detect_tags(self, tree):
-        """find tags within html and return True or False for each tag
-        add declarations instead of True for rules within the style tag
+        """find tags within html and return True or False
+        for each tag add declarations instead of True for rules
+        within the style tag
         """
 
         # create xml element tree using input
@@ -518,7 +536,8 @@ class Premailer(object):
         # List of keys
         #   Button-Element = <button></button>
         #   Button-Attribute = <input type="button" />
-        detected_names = "style", "script", "button-element", "button-attribute", "@media", "@font-face"
+        detected_names = "style", "script", "button-element", \
+                         "button-attribute", "@media", "@font-face"
 
         # Find tags
         style = tree.xpath('//style')
@@ -532,20 +551,24 @@ class Premailer(object):
         # at least one style tag
         if len(style) >= 1:
             for style_index in range(len(style)):
-                style_sheet = cssutils.parseString(style[style_index].text, validate=False)
+                style_sheet = cssutils.parseString(style[style_index].text,
+                                                   validate=False)
 
                 for rule in style_sheet:
-                    if rule.type != self.FONT_FACE_RULE and rule.type != rule.MEDIA_RULE:
+                    if rule.type != self.FONT_FACE_RULE \
+                            and rule.type != rule.MEDIA_RULE:
                         continue
 
                     rule_text = rule.cssText
                     if not rule_text:
                         if rule.type == rule.MEDIA_RULE:
-                           raise CSS_SyntaxError("You have an empty @media Rule!")
+                            raise CSSSyntaxError("You have an empty "
+                                                 "@media Rule!")
                         elif rule.type == self.FONT_FACE_RULE:
-                            raise CSS_SyntaxError("You have an empty @font-face Rule!")
+                            raise CSSSyntaxError("You have an empty "
+                                                 "@font-face Rule!")
                         else:
-                            raise CSS_SyntaxError("You have an empty Rule!")
+                            raise CSSSyntaxError("You have an empty Rule!")
 
                     rule_definition, rule_text = rule_text.split('{', 1)
                     rule_definition.strip()
@@ -554,11 +577,12 @@ class Premailer(object):
                         this_rule = {}
                         rule_text = rule_text.replace('}', '')
 
-                        for property, value in [x.split(':') for x in rule_text.split(';')
-                                           if len(x.split(':')) == 2]:
-                            property = property.strip()
+                        for prop, value in [x.split(':') for x in
+                                            rule_text.split(';')
+                                            if len(x.split(':')) == 2]:
+                            prop = prop.strip()
                             value = value.strip()
-                            this_rule[property] = value
+                            this_rule[prop] = value
                         fontface_rules.append(this_rule)
 
                     if rule.type == rule.MEDIA_RULE:
@@ -589,11 +613,12 @@ class Premailer(object):
                             declaration_text = declaration_text.strip()
 
                             declarations = []
-                            for property, value in [x.split(':') for x in declaration_text.split(';')
+                            for prop, value in [x.split(':') for x in
+                                                declaration_text.split(';')
                                                 if len(x.split(':')) == 2]:
                                 this_declaration = {}
-                                property, value = property.strip(), value.strip()
-                                this_declaration[property] = value
+                                prop, value = prop.strip(), value.strip()
+                                this_declaration[prop] = value
                                 declarations.append(this_declaration)
 
                             selector_dictionary[selector] = declarations
@@ -602,8 +627,10 @@ class Premailer(object):
                             # put selectors/declarations in same dictionary
                             for media_rule in media_rules:
                                 for old_rule_declaration in media_rule:
-                                    if rule_declaration == old_rule_declaration:
-                                        selectors = media_rule[old_rule_declaration]
+                                    if rule_declaration == \
+                                            old_rule_declaration:
+                                        selectors = \
+                                            media_rule[old_rule_declaration]
                                         media_rules.remove(media_rule)
                                         identical_rule_declaration = True
 
@@ -612,11 +639,14 @@ class Premailer(object):
                                 for new_dec in selector_dictionary[selector]:
                                     for old_selector in selectors:
                                         if selector in old_selector:
-                                            for property in new_dec:
-                                                for old_dec in old_selector[selector]:
-                                                    if property in old_dec:
-                                                        old_selector[selector].remove(old_dec)
-                                            old_selector[selector].append(new_dec)
+                                            for prop in new_dec:
+                                                for old_dec in \
+                                                        old_selector[selector]:
+                                                    if prop in old_dec:
+                                                        old_selector[selector]\
+                                                            .remove(old_dec)
+                                            old_selector[selector]\
+                                                .append(new_dec)
                                             identical_selector = True
 
                             # set next selector
@@ -633,8 +663,9 @@ class Premailer(object):
         # create results list of tags and rules
         tags = style, script, button, type_button, media_rules, fontface_rules
 
-        # Detect tags, adding boolean value for each tag to detected list
-        # If style rules True, add list of declarations
+        # Detect tags, adding boolean value for each tag to
+        # detected list.  If style rules True, add list of
+        # declarations
         detected_count = 0
         for tag in tags:
             this_name = detected_names[detected_count]
