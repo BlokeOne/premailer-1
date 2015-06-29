@@ -362,9 +362,8 @@ class MyTestCase(unittest.TestCase):
         </body>
         </html>"""
 
-        with self.assertRaisesRegexp(CSSSyntaxError,
-                                     'WARNING CSSStylesheet: '
-                                     'Unknown @rule found: "@keyframes"'):
+        with self.assertRaisesRegexp(CSSSyntaxError, 'WARNING CSSStylesheet: '
+                                     'Unknown @rule found'):
             Premailer(html).transform()
 
     def test_CSS_unknown_property(self):

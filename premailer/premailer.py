@@ -688,7 +688,6 @@ class Premailer(object):
 
         return detected
 
-
 def transform(html, base_url=None):
     return Premailer(html, keep_style_tags=True,
                      remove_classes=False,
@@ -696,89 +695,3 @@ def transform(html, base_url=None):
                      metadata=True,
                      disable_validation=False,
                      disable_exceptions=False).transform()
-
-if __name__ == '__main__':
-    html = u"""<html>
-        <head>
-        <title>Test</title>
-        <style>
-        /* @import url(http://fonts.googleapis.com/css?family=Slabo+27px); */
-        @media screen {
-            html {
-                background: #fffef0;
-                color: #300;
-            }
-            body {
-                background-color: lightblue;
-            }
-        } /* monkey */
-        @media screen {
-            head {
-                background-color: purple;
-            }
-        }
-        p.footer { font-size: 1px}
-        </style>
-        <style>
-        @page { size:8.5in 11in; margin: 2cm }
-
-        @media screen {
-            html {
-                background: #fff;
-                color: #000;
-            }
-            body {
-                padding: 1in;
-                border: 0.5pt solid #666;
-            }
-        }
-        @font-face {
-            font-family: 'MyWebFont';
-            src:    url('myfont.woff2') format('woff2'),
-                    url('myfont.woff') format('woff');
-        }
-        @font-face {
-            font-family: myFirstFont;
-            src: url(sansation_bold.woff);
-            font-weight: bold;
-        }
-        @font-face {
-            font-family: mySecondFont;
-            src: url(sansation_italic.woff);
-            font-style: italic;
-        }
-        .testClass {
-            font-family: 'Arial';
-        }
-        h1, h2 { color: red;  }
-        strong {
-          text-decoration:none
-          }
-        p { font-size:2px;
-            width: 400px
-            }
-        body {
-            font-family: 'MyWebFont', Fallback, sans-serif;
-        }
-
-
-        </style>
-        </head>
-        <body>
-        <h1>Hi!</h1>
-        <p><strong>Yes!</strong></p>
-        <p class="footer" style="color:red">Feetnuts</p>
-        <form>
-        <input type="button" value="this is a text button"/>
-        </form>
-        </body>
-        </html>"""
-    p = Premailer(html)
-    pp = pprint.PrettyPrinter(indent=2)
-    transformed_html, meta = transform(html)
-    print "*** HTML with Inlined CSS ***\n"
-    print transformed_html
-    print "*** CSS Metadata ***\n"
-    print pp.pprint(meta)
-    # print transform(html)
-    # print p._detect_tags(html)
